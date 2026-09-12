@@ -60,14 +60,28 @@ El bloque cierra cuando **un token fabricado a mano devuelve 401** — la prueba
 
 > Recuperar el compilador como red de seguridad: hoy corta antes de revisar nada.
 
-- [ ] **F2-1 — Sacar los `declare module` de adentro de las funciones**
+- [x] **F2-1 — Sacar los `declare module` de adentro de las funciones**
       Están dentro del cuerpo de `authPlugin()` y `familyPlugin()`, donde no son válidos.
       Mudarlos a un archivo de tipos propio devuelve `request.user`, `request.family` y
       `fastify.io` al chequeo de tipos. → `apps/api/src/types/fastify.d.ts` *(nuevo)*
-- [ ] **F2-2 — Correr typecheck y anotar la línea de base** `[compuerta]`
+- [x] **F2-2 — Correr typecheck y anotar la línea de base** `[compuerta]`
       Primera corrida real de `tsc` sobre la API. Lo que aparezca acá es el trabajo
       verdadero, no lo que se supuso leyendo.
       → `pnpm --filter @homehub/api typecheck`
+      *Verificado:* la primera corrida dio 2 errores de configuración que abortaban `tsc`
+      antes de revisar código (`references` a un `packages/shared/tsconfig.json`
+      inexistente; `prisma/**` fuera del `rootDir`). Corregidos: el `tsconfig` de la API
+      ahora extiende directo de la raíz sin `composite`, y `package.json` declara
+      `"type": "module"` porque el código es ESM.
+      **Línea de base real: 281 errores**, guardada en
+      [`analysis/2026-09-12-tsc-baseline-api.txt`](../analysis/2026-09-12-tsc-baseline-api.txt).
+      Se reducen a seis causas raíz:
+      1. 113 — `packages/shared` re-exporta `z` sin importarlo. Una línea.
+      2. ~30 — `httpErrors` sin `@fastify/sensible` registrado (F4-1).
+      3. ~90 — rutas sin el type provider de TypeBox: `request.body` es `unknown`.
+      4. 9 — `request.user` choca con la declaración de `@fastify/jwt` (F4-3).
+      5. ~7 — `familyPrisma(request => …)`, el implicit any de B3. Fuera de alcance.
+      6. 3 — `./shopping.js` inexistente; `import { crypto }` inválido; `any` en seed.
 
 ## Fase 3 — Sesiones en la base
 

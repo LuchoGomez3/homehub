@@ -93,28 +93,4 @@ export async function authPlugin(fastify: FastifyInstance) {
       throw fastify.httpErrors.forbidden('Admin access required');
     }
   });
-
-  // TypeScript declarations
-  declare module 'fastify' {
-    interface FastifyInstance {
-      hashPassword: typeof hashPassword;
-      verifyPassword: typeof verifyPassword;
-      generateAccessToken: typeof generateAccessToken;
-      generateRefreshToken: typeof generateRefreshToken;
-      parseToken: typeof parseToken;
-      requireAdmin: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
-    }
-    interface FastifyRequest {
-      user: {
-        id: string;
-        email: string;
-        name: string;
-        role: string;
-        familyId: string;
-        avatar: string | null;
-        language: string;
-        theme: string;
-      } | null;
-    }
-  }
 }

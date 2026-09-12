@@ -38,13 +38,4 @@ export async function familyPlugin(fastify: FastifyInstance) {
     });
   });
 
-  // Decorate request with family
-  declare module 'fastify' {
-    interface FastifyRequest {
-      family: { id: string; name: string } | null;
-    }
-    interface FastifyInstance {
-      familyPrisma: (familyId: string) => typeof prisma;
-    }
-  }
 }
