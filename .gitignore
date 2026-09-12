@@ -3,6 +3,9 @@ node_modules
 .pnp
 .pnp.js
 
+# Claude
+.claude
+
 # Testing
 coverage
 
@@ -49,3 +52,5 @@ logs
 
 # Docker
 docker-compose.override.yml
+# Claude Code (configuracion local de la maquina)
+.claude/
