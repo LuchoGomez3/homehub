@@ -3,6 +3,8 @@
 - **Estado:** en curso
 - **Bloque:** 1 de N
 - **Alcance:** `apps/api` solamente. El frontend no se toca en este bloque.
+  *Ampliado el 2026-09-12:* entra B3 (aislamiento entre familias), porque F7-1 exige
+  cero errores de tipos y los de B3 no se pueden separar del arreglo.
 - **Abre:** 2026-09-12
 - **Origen:** [`analysis/2026-09-12-estado-inicial.md`](../analysis/2026-09-12-estado-inicial.md),
   hallazgos B1, B2, B4, B5, B6
@@ -83,15 +85,44 @@ El bloque cierra cuando **un token fabricado a mano devuelve 401** — la prueba
       5. ~7 — `familyPrisma(request => …)`, el implicit any de B3. Fuera de alcance.
       6. 3 — `./shopping.js` inexistente; `import { crypto }` inválido; `any` en seed.
 
+## Fase 2b — Cero errores fuera de auth
+
+> Lo que la línea de base mostró y no es autenticación, pero bloquea el verde de F7-1.
+
+- [ ] **F2-3 — `import { z }` en `packages/shared`**
+      Una línea. Elimina 113 de los 281 errores. → `packages/shared/src/index.ts`
+- [ ] **F2-4 — Type provider de TypeBox en cada router**
+      Tipar los plugins de rutas con `FastifyPluginAsyncTypebox` para que los esquemas
+      lleguen a `request.body` y `request.params`. Un cambio de firma por archivo.
+      → `apps/api/src/routes/*.ts`
+- [ ] **F2-5 — Imports y `any` sueltos**
+      `import { crypto } from 'crypto'` no es un export válido; dos parámetros sin tipo
+      en `seed.ts`. → `routes/invitations.ts`, `prisma/seed.ts`
+- [ ] **F2-6 — Sacar el registro de `shoppingRoutes`**
+      El módulo no existe y el servidor no puede levantar con el import roto. Escribirlo
+      es trabajo de feature: se quita el registro con un `TODO` y queda para el bloque de
+      supermercado. *(Hueco del plan original: F7-2 no podía pasar sin esto.)*
+      → `apps/api/src/routes/index.ts`
+- [ ] **F2-7 — B3: `familyPrisma` recibe el id real, dentro de cada handler**
+      Hoy se llama una vez al registrar el router, con una función en vez de un string.
+      Además la extensión inyecta `where` en toda operación, incluido `create`, donde
+      Prisma lo rechaza. Se reescribe para scopear lecturas, updates y deletes por
+      `familyId` e inyectar `familyId` en `data` en los creates.
+      → `plugins/family.ts`, `routes/{expenses,bills,todos,events,dashboard}.ts`
+
 ## Fase 3 — Sesiones en la base
 
 > Sin una tabla de refresh tokens no existe el logout: hoy el token sigue vivo siete días.
 
-- [ ] **F3-1 — Modelo `RefreshToken` en el schema**
+- [x] **F3-1 — Modelo `RefreshToken` en el schema**
       Guardar el hash del token —nunca el token plano—, su vencimiento, cuándo se revocó y
       cuál lo reemplazó, para poder detectar reúso. → `apps/api/prisma/schema.prisma`
-- [ ] **F3-2 — Aplicar el schema y regenerar el cliente**
+- [x] **F3-2 — Aplicar el schema y regenerar el cliente**
       `prisma db push` + `prisma generate` contra el Postgres levantado en F1-4.
+      *Verificado:* 10 tablas en `public`, `RefreshToken` con sus 7 columnas. Hizo falta
+      crear `apps/api/.env` (ignorado por git) porque Prisma y `dotenv` leen del
+      directorio de la app, no de la raíz; el `.env` de la raíz mezcla claves de las dos
+      apps y usa `API_PORT` donde el código lee `PORT`.
 
 ## Fase 4 — Firmar los tokens de verdad
 
@@ -161,6 +192,10 @@ El bloque cierra cuando **un token fabricado a mano devuelve 401** — la prueba
       no hay estado del lado del servidor.
 - [ ] **F7-6 — Un token firmado con otro secreto devuelve 401** `[discriminador]`
       Confirma que la verificación mira la firma y no solo la forma del payload.
+- [ ] **F7-7 — Una familia no ve los datos de otra** `[discriminador]`
+      Registrar dos familias. A crea un gasto; B lo pide por id y recibe 404. Hoy el
+      scoping no funciona en ningún momento, así que B lo vería —si la ruta no
+      explotara antes.
 
 ## Fase 8 — Consolidar
 
@@ -176,10 +211,9 @@ El bloque cierra cuando **un token fabricado a mano devuelve 401** — la prueba
 
 ## Fuera de alcance
 
-- **B3, el aislamiento entre familias** (`familyPrisma` recibe una función donde espera un
-  string). Es autorización, no autenticación, y pide su propio bloque con dos familias
-  sembradas para probarlo. El servidor arranca sin tocarlo, porque `/api/auth/*` no lo usa.
-  Candidato natural al bloque 2.
+- ~~B3, el aislamiento entre familias~~ — *entró al bloque el 2026-09-12 (F2-7, F7-7).*
+- El módulo de supermercado (`routes/shopping.ts`): se quita el registro en F2-6 y se
+  escribe en su propio bloque.
 - Todo el frontend: C1 a C5 quedan para el bloque 3.
 
 ## Entorno verificado
