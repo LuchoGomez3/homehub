@@ -37,19 +37,24 @@ El bloque cierra cuando **un token fabricado a mano devuelve 401** — la prueba
 
 > El proyecto nunca pasó por un `pnpm install`. Hasta que eso termine, nada se puede probar.
 
-- [ ] **F1-1 — Reconciliar dependencias contra los imports reales**
-      Agregar los 7 paquetes que la API importa sin declarar (`@fastify/sensible`,
+- [x] **F1-1 — Reconciliar dependencias contra los imports reales**
+      Agregar los 8 paquetes que la API importa sin declarar (`@fastify/sensible`,
       `@sinclair/typebox`, `@fastify/type-provider-typebox`, `socket.io`, `redis`,
-      `@socket.io/redis-adapter`, `pino`) y sacar los 5 declarados que nadie usa.
-      → `apps/api/package.json`
-- [ ] **F1-2 — `turbo.json`: `pipeline` → `tasks`**
+      `@socket.io/redis-adapter`, `pino`, `dotenv`) y sacar los 6 declarados que nadie
+      usa. → `apps/api/package.json`
+      *Verificado:* eran 8 y 6, no 7 y 5 — `dotenv` entra como side-effect import y el
+      grep original no lo veía. Además `eslint-plugin-tailwindcss@^0.5.0` en
+      `packages/config` no existía como versión; corregido a `^3.17.0`.
+- [x] **F1-2 — `turbo.json`: `pipeline` → `tasks`**
       La clave es de Turborepo 1 y la raíz instala Turborepo 2. Sin esto ningún script del
       monorepo arranca. → `turbo.json`
-- [ ] **F1-3 — `pnpm install` termina y genera lockfile**
+- [x] **F1-3 — `pnpm install` termina y genera lockfile**
       Primera vez en la vida del proyecto. Deja `pnpm-lock.yaml`, que también se commitea.
-- [ ] **F1-4 — Postgres y Redis arriba con healthcheck verde**
+      *Verificado:* 691 paquetes, 10m 32s, exit 0.
+- [x] **F1-4 — Postgres y Redis arriba con healthcheck verde**
       `docker compose up -d`. El compose ya está bien escrito; solo sacarle la clave
       `version` que Compose v2 ignora. → `docker-compose.yml`
+      *Verificado:* ambos `healthy` a los 6 s. Base limpia, 0 tablas.
 
 ## Fase 2 — Desbloquear el typecheck
 
