@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: homehub-postgres
+    environment:
+      POSTGRES_USER: homehub
+      POSTGRES_PASSWORD: homehub_dev_password
+      POSTGRES_DB: homehub
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U homehub -d homehub"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - homehub-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: homehub-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - homehub-network
+
+  # Adminer para gestión de BD (opcional)
+  adminer:
+    image: adminer:4.8
+    container_name: homehub-adminer
+    ports:
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    networks:
+      - homehub-network
+    profiles:
+      - tools
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  homehub-network:
+    driver: bridge
