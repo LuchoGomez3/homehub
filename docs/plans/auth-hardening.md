@@ -1,6 +1,6 @@
 # Plan: reemplazar los tokens sin firma por JWT reales
 
-- **Estado:** en curso
+- **Estado:** completo, con todos los pasos verificados; falta el PR a `main`
 - **Bloque:** 1 de N
 - **Alcance:** `apps/api` solamente. El frontend no se toca en este bloque.
   *Ampliado el 2026-09-12:* entra B3 (aislamiento entre familias), porque F7-1 exige
@@ -344,13 +344,16 @@ errores. No corrieron todavía: los verifica la Fase 7.*
 
 ## Fase 8 — Consolidar
 
-- [ ] **F8-1 — Un commit por fase verde**
+- [x] **F8-1 — Un commit por fase verde**
       Historial legible en vez de un único commit gigante: cada mensaje dice qué se arregló y
       contra qué se verificó.
-- [ ] **F8-2 — Escribir `flows/auth.md`**
+- [x] **F8-2 — Escribir `flows/auth.md`**
       El flujo de autenticación ya verificado, siguiendo la plantilla de
       [`flows/README.md`](../flows/README.md). Recién acá, con todo funcionando: documentar
       antes produce ficción.
+      *Verificado:* la sección «Cómo verificarlo» se corrió literal contra el servidor y
+      dio lo que el documento dice (`201 200 200 200 401`, y 401 en los dos
+      discriminadores).
 
 ---
 
