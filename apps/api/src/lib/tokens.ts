@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import type { JWT } from '@fastify/jwt';
 import type { TokenPayload } from '../types/fastify.js';
+import { prisma } from '../server.js';
 
 export const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
 export const REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
@@ -84,4 +85,39 @@ export function setSessionCookies(reply: FastifyReply, accessToken: string, refr
 export function clearSessionCookies(reply: FastifyReply): void {
   reply.clearCookie(ACCESS_COOKIE, { path: '/' });
   reply.clearCookie(REFRESH_COOKIE, { path: '/api/auth' });
+}
+
+/**
+ * Firma el par access/refresh, persiste el hash del refresh y deja las dos
+ * cookies en la respuesta. `replaces` encadena el refresh nuevo al que rota.
+ * Es la unica forma de abrir una sesion: login, register, refresh y
+ * invitations/accept pasan por aca.
+ */
+export async function issueSession(
+  fastify: FastifyInstance,
+  reply: FastifyReply,
+  user: SessionUser,
+  replaces?: { id: string },
+): Promise<void> {
+  const jti = newTokenId();
+  const accessToken = signAccessToken(fastify, user);
+  const refreshToken = signRefreshToken(fastify, user, jti);
+
+  const created = await prisma.refreshToken.create({
+    data: {
+      tokenHash: hashToken(refreshToken),
+      userId: user.id,
+      expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_SECONDS * 1000),
+    },
+    select: { id: true },
+  });
+
+  if (replaces) {
+    await prisma.refreshToken.update({
+      where: { id: replaces.id },
+      data: { revokedAt: new Date(), replacedById: created.id },
+    });
+  }
+
+  setSessionCookies(reply, accessToken, refreshToken);
 }

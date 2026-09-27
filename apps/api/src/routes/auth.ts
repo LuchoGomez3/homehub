@@ -1,17 +1,12 @@
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import type { FastifyInstance, FastifyReply } from 'fastify';
 import { Type } from '@sinclair/typebox';
 import { prisma } from '../server.js';
 import {
   REFRESH_COOKIE,
-  REFRESH_TOKEN_TTL_SECONDS,
   clearSessionCookies,
   hashToken,
-  newTokenId,
+  issueSession,
   refreshJwt,
-  setSessionCookies,
-  signAccessToken,
-  signRefreshToken,
 } from '../lib/tokens.js';
 import type { TokenPayload } from '../types/fastify.js';
 
@@ -73,45 +68,6 @@ const userSelect = {
   language: true,
   theme: true,
 } as const;
-
-type SessionUser = { id: string; familyId: string; role: string };
-
-// ---------------------------------------------------------------------------
-// Emision de sesion
-// ---------------------------------------------------------------------------
-
-/**
- * Firma el par access/refresh, persiste el hash del refresh y deja las dos
- * cookies en la respuesta. `replaces` encadena el refresh nuevo al que rota.
- */
-async function issueSession(
-  fastify: FastifyInstance,
-  reply: FastifyReply,
-  user: SessionUser,
-  replaces?: { id: string },
-): Promise<void> {
-  const jti = newTokenId();
-  const accessToken = signAccessToken(fastify, user);
-  const refreshToken = signRefreshToken(fastify, user, jti);
-
-  const created = await prisma.refreshToken.create({
-    data: {
-      tokenHash: hashToken(refreshToken),
-      userId: user.id,
-      expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_SECONDS * 1000),
-    },
-    select: { id: true },
-  });
-
-  if (replaces) {
-    await prisma.refreshToken.update({
-      where: { id: replaces.id },
-      data: { revokedAt: new Date(), replacedById: created.id },
-    });
-  }
-
-  setSessionCookies(reply, accessToken, refreshToken);
-}
 
 // ---------------------------------------------------------------------------
 // Rutas

@@ -200,7 +200,7 @@ errores. No corrieron todavía: los verifica la Fase 7.*
       Si llega un token ya rotado es señal de robo: revocar todas las sesiones descendientes
       de ese usuario.
 
-- [ ] **F5-5 — `invitations/accept` emite la sesión como `register`**
+- [x] **F5-5 — `invitations/accept` emite la sesión como `register`**
       *Hueco encontrado en F2-4.* La ruta todavía llama a `generateAccessToken` y
       `generateRefreshToken`, que F4-2 borró: hoy tira `TypeError` y responde 500. Además
       devuelve los tokens en el body (va contra `decisions/0001`), no guarda el refresh en
@@ -209,6 +209,19 @@ errores. No corrieron todavía: los verifica la Fase 7.*
       *Decidido el 2026-09-27:* si el email ya tiene cuenta, la invitación se rechaza con
       409. La persona inicia sesión y la acepta desde adentro, así que mover a alguien de
       familia requiere una sesión suya.
+      *Hecho:* `issueSession` pasó a `lib/tokens.ts` y es la única forma de abrir sesión.
+      `accept` crea el usuario y reclama la invitación dentro de una transacción, emite la
+      sesión solo en cookies y responde 409 si el email ya tiene cuenta.
+      *Verificado* contra el servidor real:
+      - Email nuevo → 200, dos cookies `httpOnly`, sin tokens en el body. `me` devuelve
+        MEMBER de la familia que invitó, con una fila en `RefreshToken`.
+      - El mismo token otra vez → 409.
+      - Email con cuenta → 409, y la cuenta sigue en su familia.
+      - Dos `accept` en paralelo con el mismo token → un 200 y un 409, y se crea un solo
+        usuario.
+      *Pendiente, fuera de este paso:* aceptar la invitación con la sesión iniciada no
+      existe todavía. Tiene decisiones de producto propias; por ejemplo, qué pasa si la
+      persona es la única admin de su familia actual.
       → `routes/invitations.ts`, `routes/auth.ts` (`issueSession` pasa a `lib/tokens.ts`)
 
 ## Fase 6 — Cerrar el WebSocket
