@@ -66,12 +66,12 @@ const paginatedExpenseResponse = Type.Object({
 });
 
 export const expenseRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
-  const familyPrisma = fastify.familyPrisma(request => request.family!.id);
 
   // List expenses
   fastify.get('/', {
     schema: { querystring: expenseQuery, response: { 200: paginatedExpenseResponse } },
   }, async (request) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const { page = 1, limit = 20, sortBy = 'date', sortOrder = 'desc', ...filters } = request.query;
     const where: Prisma.ExpenseWhereInput = { familyId: request.family!.id };
 
@@ -114,6 +114,7 @@ export const expenseRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   fastify.get('/:id', {
     schema: { params: Type.Object({ id: Type.String() }), response: { 200: Type.Object({ success: Type.Boolean(), data: expenseResponse }) } },
   }, async (request, reply) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const expense = await familyPrisma.expense.findUnique({
       where: { id: request.params.id },
       include: { user: { select: { id: true, name: true, avatar: true } } },
@@ -126,8 +127,9 @@ export const expenseRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   fastify.post('/', {
     schema: { body: createExpenseBody, response: { 201: Type.Object({ success: Type.Boolean(), data: expenseResponse }) } },
   }, async (request, reply) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const expense = await familyPrisma.expense.create({
-      data: { ...request.body, amount: request.body.amount, userId: request.user!.id },
+      data: { ...request.body, amount: request.body.amount, userId: request.user!.id, familyId: request.family!.id },
       include: { user: { select: { id: true, name: true, avatar: true } } },
     });
 
@@ -141,6 +143,7 @@ export const expenseRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   fastify.patch('/:id', {
     schema: { params: Type.Object({ id: Type.String() }), body: updateExpenseBody, response: { 200: Type.Object({ success: Type.Boolean(), data: expenseResponse }) } },
   }, async (request, reply) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const existing = await familyPrisma.expense.findUnique({ where: { id: request.params.id } });
     if (!existing) throw fastify.httpErrors.notFound('Expense not found');
 
@@ -158,6 +161,7 @@ export const expenseRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   fastify.delete('/:id', {
     schema: { params: Type.Object({ id: Type.String() }), response: { 200: Type.Object({ success: Type.Boolean(), data: Type.Object({ message: Type.String() }) }) } },
   }, async (request, reply) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const existing = await familyPrisma.expense.findUnique({ where: { id: request.params.id } });
     if (!existing) throw fastify.httpErrors.notFound('Expense not found');
 
@@ -184,6 +188,7 @@ export const expenseRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const { startDate, endDate } = request.query;
     const where: Prisma.ExpenseWhereInput = { familyId: request.family!.id };
     if (startDate || endDate) {

@@ -115,12 +115,24 @@ El bloque cierra cuando **un token fabricado a mano devuelve 401** — la prueba
       es trabajo de feature: se quita el registro con un `TODO` y queda para el bloque de
       supermercado. *(Hueco del plan original: F7-2 no podía pasar sin esto.)*
       → `apps/api/src/routes/index.ts`
-- [ ] **F2-7 — B3: `familyPrisma` recibe el id real, dentro de cada handler**
+- [x] **F2-7 — B3: `familyPrisma` recibe el id real, dentro de cada handler**
       Hoy se llama una vez al registrar el router, con una función en vez de un string.
       Además la extensión inyecta `where` en toda operación, incluido `create`, donde
       Prisma lo rechaza. Se reescribe para scopear lecturas, updates y deletes por
       `familyId` e inyectar `familyId` en `data` en los creates.
       → `plugins/family.ts`, `routes/{expenses,bills,todos,events,dashboard}.ts`
+      *Hecho así:* el scoping aplica solo a los modelos con `familyId` propio (Expense, Bill,
+      Todo, Event, ShoppingItem). Antes aplicaba a todos, incluido `Family`, donde agregar
+      `familyId` al `where` rompía la consulta. Las rutas pasan `familyId` explícito en los
+      `create` para que TypeScript lo acepte, y la extensión lo pisa igual con el de la
+      sesión. En los `update`, un `familyId` en `data` también se pisa. El typecheck bajó
+      de 28 a 6 errores: 4 de `seed.ts` (F2-5) y 2 de F5-5.
+- [ ] **F2-8 — Validar que `assigneeId` y `attendeeIds` sean de la misma familia**
+      *Hueco encontrado en F2-7.* `todos` y `events` conectan usuarios por id sin comprobar
+      a qué familia pertenecen, y el `include` devuelve el nombre y el avatar de ese
+      usuario. Con el id de un usuario de otra familia se puede asignarlo y leer sus datos
+      públicos. Hay que verificar los ids contra `request.family.id` antes del `connect`.
+      → `routes/todos.ts`, `routes/events.ts`
 
 ## Fase 3 — Sesiones en la base
 
@@ -193,7 +205,10 @@ errores. No corrieron todavía: los verifica la Fase 7.*
       `generateRefreshToken`, que F4-2 borró: hoy tira `TypeError` y responde 500. Además
       devuelve los tokens en el body (va contra `decisions/0001`), no guarda el refresh en
       la tabla y, si el email ya existe, cambia de familia a ese usuario sin pedirle la
-      contraseña. Antes de escribirlo hay que decidir qué pasa con un usuario existente.
+      contraseña.
+      *Decidido el 2026-09-27:* si el email ya tiene cuenta, la invitación se rechaza con
+      409. La persona inicia sesión y la acepta desde adentro, así que mover a alguien de
+      familia requiere una sesión suya.
       → `routes/invitations.ts`, `routes/auth.ts` (`issueSession` pasa a `lib/tokens.ts`)
 
 ## Fase 6 — Cerrar el WebSocket
@@ -236,10 +251,15 @@ errores. No corrieron todavía: los verifica la Fase 7.*
       no hay estado del lado del servidor.
 - [ ] **F7-6 — Un token firmado con otro secreto devuelve 401** `[discriminador]`
       Confirma que la verificación mira la firma y no solo la forma del payload.
-- [ ] **F7-7 — Una familia no ve los datos de otra** `[discriminador]`
+- [x] **F7-7 — Una familia no ve los datos de otra** `[discriminador]`
       Registrar dos familias. A crea un gasto; B lo pide por id y recibe 404. Hoy el
       scoping no funciona en ningún momento, así que B lo vería —si la ruta no
       explotara antes.
+      *Verificado* contra el servidor real con dos familias registradas. A crea un gasto y
+      lo lee: 200. B lo lee: 404. B lo modifica: 404. B lo borra: 404. B lista gastos:
+      total 0. B crea un gasto mandando `familyId` de A: queda en la familia de B (lo
+      confirmó la base) y el de A sigue intacto. El dashboard y las listas de A responden
+      200. Los datos de prueba se borraron después.
 
 ## Fase 8 — Consolidar
 

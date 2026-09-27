@@ -65,12 +65,12 @@ const paginatedEventResponse = Type.Object({
 });
 
 export const eventRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
-  const familyPrisma = fastify.familyPrisma(request => request.family!.id);
 
   // List events
   fastify.get('/', {
     schema: { querystring: eventQuery, response: { 200: paginatedEventResponse } },
   }, async (request) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const { page = 1, limit = 50, ...filters } = request.query;
     const where: Prisma.EventWhereInput = { familyId: request.family!.id };
 
@@ -105,6 +105,7 @@ export const eventRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   fastify.get('/:id', {
     schema: { params: Type.Object({ id: Type.String() }), response: { 200: Type.Object({ success: Type.Boolean(), data: eventResponse }) } },
   }, async (request, reply) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const event = await familyPrisma.event.findUnique({
       where: { id: request.params.id },
       include: { attendees: { select: { id: true, name: true, avatar: true } } },
@@ -117,10 +118,12 @@ export const eventRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   fastify.post('/', {
     schema: { body: createEventBody, response: { 201: Type.Object({ success: Type.Boolean(), data: eventResponse }) } },
   }, async (request, reply) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const { attendeeIds, ...data } = request.body;
     const event = await familyPrisma.event.create({
       data: {
         ...data,
+        familyId: request.family!.id,
         startDate: new Date(data.startDate),
         endDate: new Date(data.endDate),
         attendees: attendeeIds ? { connect: attendeeIds.map(id => ({ id })) } : undefined,
@@ -135,6 +138,7 @@ export const eventRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   fastify.patch('/:id', {
     schema: { params: Type.Object({ id: Type.String() }), body: updateEventBody, response: { 200: Type.Object({ success: Type.Boolean(), data: eventResponse }) } },
   }, async (request, reply) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const existing = await familyPrisma.event.findUnique({ where: { id: request.params.id } });
     if (!existing) throw fastify.httpErrors.notFound('Event not found');
 
@@ -158,6 +162,7 @@ export const eventRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   fastify.delete('/:id', {
     schema: { params: Type.Object({ id: Type.String() }), response: { 200: Type.Object({ success: Type.Boolean(), data: Type.Object({ message: Type.String() }) }) } },
   }, async (request, reply) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const existing = await familyPrisma.event.findUnique({ where: { id: request.params.id } });
     if (!existing) throw fastify.httpErrors.notFound('Event not found');
 
@@ -176,6 +181,7 @@ export const eventRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       response: { 200: Type.Object({ success: Type.Boolean(), data: Type.Array(eventResponse) }) },
     },
   }, async (request) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const { start, end } = request.query;
     const events = await familyPrisma.event.findMany({
       where: {
@@ -192,6 +198,7 @@ export const eventRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   fastify.get('/upcoming/week', {
     schema: { response: { 200: Type.Object({ success: Type.Boolean(), data: Type.Array(eventResponse) }) } },
   }, async (request) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const now = new Date();
     const week = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 

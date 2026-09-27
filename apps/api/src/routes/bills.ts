@@ -65,12 +65,12 @@ const paginatedBillResponse = Type.Object({
 });
 
 export const billRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
-  const familyPrisma = fastify.familyPrisma(request => request.family!.id);
 
   // List bills
   fastify.get('/', {
     schema: { querystring: billQuery, response: { 200: paginatedBillResponse } },
   }, async (request) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const { page = 1, limit = 20, sortBy = 'dueDate', sortOrder = 'asc', ...filters } = request.query;
     const where: Prisma.BillWhereInput = { familyId: request.family!.id };
 
@@ -106,6 +106,7 @@ export const billRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   fastify.get('/:id', {
     schema: { params: Type.Object({ id: Type.String() }), response: { 200: Type.Object({ success: Type.Boolean(), data: billResponse }) } },
   }, async (request, reply) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const bill = await familyPrisma.bill.findUnique({ where: { id: request.params.id } });
     if (!bill) throw fastify.httpErrors.notFound('Bill not found');
     return { success: true, data: { ...bill, amount: Number(bill.amount) } };
@@ -115,7 +116,8 @@ export const billRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   fastify.post('/', {
     schema: { body: createBillBody, response: { 201: Type.Object({ success: Type.Boolean(), data: billResponse }) } },
   }, async (request, reply) => {
-    const bill = await familyPrisma.bill.create({ data: { ...request.body, amount: request.body.amount } });
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
+    const bill = await familyPrisma.bill.create({ data: { ...request.body, amount: request.body.amount, familyId: request.family!.id } });
     fastify.io.to(`family:${request.family!.id}`).emit('bill:created', { ...bill, amount: Number(bill.amount) });
     return reply.status(201).send({ success: true, data: { ...bill, amount: Number(bill.amount) } });
   });
@@ -124,6 +126,7 @@ export const billRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   fastify.patch('/:id', {
     schema: { params: Type.Object({ id: Type.String() }), body: updateBillBody, response: { 200: Type.Object({ success: Type.Boolean(), data: billResponse }) } },
   }, async (request, reply) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const existing = await familyPrisma.bill.findUnique({ where: { id: request.params.id } });
     if (!existing) throw fastify.httpErrors.notFound('Bill not found');
 
@@ -143,6 +146,7 @@ export const billRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   fastify.delete('/:id', {
     schema: { params: Type.Object({ id: Type.String() }), response: { 200: Type.Object({ success: Type.Boolean(), data: Type.Object({ message: Type.String() }) }) } },
   }, async (request, reply) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const existing = await familyPrisma.bill.findUnique({ where: { id: request.params.id } });
     if (!existing) throw fastify.httpErrors.notFound('Bill not found');
 
@@ -155,6 +159,7 @@ export const billRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   fastify.post('/:id/pay', {
     schema: { params: Type.Object({ id: Type.String() }), response: { 200: Type.Object({ success: Type.Boolean(), data: billResponse }) } },
   }, async (request, reply) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const bill = await familyPrisma.bill.update({
       where: { id: request.params.id, familyId: request.family!.id },
       data: { status: 'PAID' },
@@ -171,6 +176,7 @@ export const billRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       response: { 200: Type.Object({ success: Type.Boolean(), data: Type.Array(billResponse) }) },
     },
   }, async (request) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const { days = 30 } = request.query;
     const now = new Date();
     const future = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);

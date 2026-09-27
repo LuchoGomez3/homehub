@@ -64,12 +64,12 @@ const paginatedTodoResponse = Type.Object({
 });
 
 export const todoRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
-  const familyPrisma = fastify.familyPrisma(request => request.family!.id);
 
   // List todos
   fastify.get('/', {
     schema: { querystring: todoQuery, response: { 200: paginatedTodoResponse } },
   }, async (request) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const { page = 1, limit = 20, sortBy = 'dueDate', sortOrder = 'asc', ...filters } = request.query;
     const where: Prisma.TodoWhereInput = { familyId: request.family!.id };
 
@@ -104,6 +104,7 @@ export const todoRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   fastify.get('/:id', {
     schema: { params: Type.Object({ id: Type.String() }), response: { 200: Type.Object({ success: Type.Boolean(), data: todoResponse }) } },
   }, async (request, reply) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const todo = await familyPrisma.todo.findUnique({
       where: { id: request.params.id },
       include: { assignee: { select: { id: true, name: true, avatar: true } } },
@@ -116,8 +117,9 @@ export const todoRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   fastify.post('/', {
     schema: { body: createTodoBody, response: { 201: Type.Object({ success: Type.Boolean(), data: todoResponse }) } },
   }, async (request, reply) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const todo = await familyPrisma.todo.create({
-      data: { ...request.body, dueDate: request.body.dueDate ? new Date(request.body.dueDate) : null },
+      data: { ...request.body, dueDate: request.body.dueDate ? new Date(request.body.dueDate) : null, familyId: request.family!.id },
       include: { assignee: { select: { id: true, name: true, avatar: true } } },
     });
     fastify.io.to(`family:${request.family!.id}`).emit('todo:created', todo);
@@ -128,6 +130,7 @@ export const todoRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   fastify.patch('/:id', {
     schema: { params: Type.Object({ id: Type.String() }), body: updateTodoBody, response: { 200: Type.Object({ success: Type.Boolean(), data: todoResponse }) } },
   }, async (request, reply) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const existing = await familyPrisma.todo.findUnique({ where: { id: request.params.id } });
     if (!existing) throw fastify.httpErrors.notFound('Todo not found');
 
@@ -148,6 +151,7 @@ export const todoRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   fastify.delete('/:id', {
     schema: { params: Type.Object({ id: Type.String() }), response: { 200: Type.Object({ success: Type.Boolean(), data: Type.Object({ message: Type.String() }) }) } },
   }, async (request, reply) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const existing = await familyPrisma.todo.findUnique({ where: { id: request.params.id } });
     if (!existing) throw fastify.httpErrors.notFound('Todo not found');
 
@@ -160,6 +164,7 @@ export const todoRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   fastify.get('/board/kanban', {
     schema: { response: { 200: Type.Object({ success: Type.Boolean(), data: Type.Object({ pending: Type.Array(todoResponse), inProgress: Type.Array(todoResponse), done: Type.Array(todoResponse) }) }) } },
   }, async (request) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const todos = await familyPrisma.todo.findMany({
       where: { familyId: request.family!.id },
       orderBy: [{ priority: 'desc' }, { dueDate: 'asc' }, { createdAt: 'asc' }],

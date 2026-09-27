@@ -5,8 +5,8 @@
 // redefiniciones del paquete entero.
 
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import type { PrismaClient } from '@prisma/client';
 import type { Server as SocketIOServer } from 'socket.io';
+import type { ScopedPrisma } from '../plugins/family.js';
 
 /** Lo que las rutas ven en `request.user` una vez autenticado. */
 export interface AuthenticatedUser {
@@ -53,7 +53,7 @@ declare module 'fastify' {
     requireAdmin: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
 
     // plugins/family.ts
-    familyPrisma: (familyId: string) => PrismaClient;
+    familyPrisma: (familyId: string) => ScopedPrisma;
 
     // socket/index.ts
     io: SocketIOServer;
