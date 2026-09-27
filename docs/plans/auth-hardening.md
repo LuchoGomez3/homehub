@@ -194,15 +194,19 @@ errores. No corrieron todavía: los verifica la Fase 7.*
 
 - [ ] **F7-1 — `typecheck` verde en `apps/api`** `[compuerta]`
       Cero errores. No «los que quedan son de tipos nomás».
-- [ ] **F7-2 — El servidor levanta y documenta** `[compuerta]`
+- [x] **F7-2 — El servidor levanta y documenta** `[compuerta]`
       `/health` responde 200 y `/docs` muestra el OpenAPI con las rutas registradas.
-      *Dos bloqueos heredados, encontrados al verificar F4-5:*
-      1. `server.ts` solo llama a `start()` si `` import.meta.url === `file://${process.argv[1]}` ``.
+      *Dos bloqueos heredados, encontrados al verificar F4-5 y ya resueltos:*
+      1. `server.ts` solo llamaba a `start()` si `` import.meta.url === `file://${process.argv[1]}` ``.
          La ruta del repo tiene un espacio (`Carrear Path`), la URL lo codifica como `%20`
-         y la comparación nunca da igual: el proceso termina sin levantar nada y sin error.
-         Hay que comparar contra `pathToFileURL(process.argv[1]).href`.
-      2. `io` se decora dos veces, en `socket/index.ts:84` y en `server.ts:184`, y el arranque
-         tira `FST_ERR_DEC_ALREADY_PRESENT`. Conviene resolverlo junto con F6.
+         y la comparación nunca daba igual: el proceso terminaba sin levantar nada y sin
+         error. Ahora compara contra `pathToFileURL(process.argv[1]).href`.
+      2. `io` se decoraba dos veces, en `socket/index.ts` y en `server.ts`, y el arranque
+         tiraba `FST_ERR_DEC_ALREADY_PRESENT`. Queda solo el de `server.ts`.
+      *Verificado* con `tsx src/server.ts` contra Postgres y Redis locales: `/health` → 200;
+      `/docs/json` → 200 con 32 rutas; `GET /api/todos` sin token → 401; token base64
+      fabricado en `/api/auth/me` → 401.
+
 - [ ] **F7-3 — Flujo completo con curl contra Postgres real** `[compuerta]`
       `register` → `me` devuelve 200 → `refresh` entrega un par nuevo → `logout` → `me` ahora
       devuelve 401. Con cookies, sin tocar el body.

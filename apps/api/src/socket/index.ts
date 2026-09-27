@@ -80,9 +80,7 @@ export async function setupSocketIO(
     });
   });
 
-  // Make io available on fastify
-  fastify.decorate('io', io);
-
+  // El decorador `io` lo registra server.ts con el valor que se devuelve aca.
   return io;
 }
 

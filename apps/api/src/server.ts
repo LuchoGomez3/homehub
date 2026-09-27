@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { pathToFileURL } from 'node:url';
 import Fastify, { FastifyInstance } from 'fastify';
 import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { Type } from '@sinclair/typebox';
@@ -205,7 +206,10 @@ async function start() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Se compara contra pathToFileURL y no contra `file://${argv[1]}`: la URL
+// codifica los espacios de la ruta (%20) y la comparacion textual nunca daba
+// igual en carpetas con espacios, asi que el proceso salia sin levantar nada.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   start();
 }
 
