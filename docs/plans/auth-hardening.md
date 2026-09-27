@@ -268,17 +268,34 @@ errores. No corrieron todavía: los verifica la Fase 7.*
       `/docs/json` → 200 con 32 rutas; `GET /api/todos` sin token → 401; token base64
       fabricado en `/api/auth/me` → 401.
 
-- [ ] **F7-3 — Flujo completo con curl contra Postgres real** `[compuerta]`
+- [x] **F7-3 — Flujo completo con curl contra Postgres real** `[compuerta]`
       `register` → `me` devuelve 200 → `refresh` entrega un par nuevo → `logout` → `me` ahora
       devuelve 401. Con cookies, sin tocar el body.
-- [ ] **F7-4 — Un token fabricado a mano devuelve 401** `[discriminador]`
+      *Verificado el 2026-09-27:* register 201 → `me` 200 → refresh 200 con par nuevo →
+      `me` 200 → logout 200 → `me` 401. El refresh reenviado a mano después del logout da
+      401 (revocado en la base). Login 200, login con clave mala 401. Ninguna respuesta
+      trae tokens en el body.
+      **Consecuencia conocida, a decidir:** el access token reenviado a mano después del
+      logout sigue dando 200 hasta que vence (15 min). Es el costo de verificar solo la
+      firma, sin consultar la base; `decisions/0001` no lo menciona. Las opciones son
+      aceptar esa ventana y documentarla, o agregar un chequeo de sesión en el `preHandler`
+      (por ejemplo, un `sid` en el access token que apunte a la fila de `RefreshToken`).
+- [x] **F7-4 — Un token fabricado a mano devuelve 401** `[discriminador]`
       Generar el token base64 del análisis con `role: ADMIN` y mandarlo. Hoy devuelve 200 y
       entrega la sesión. Si este paso no pasa, nada de lo anterior sirvió.
-- [ ] **F7-5 — Un refresh token ya usado devuelve 401** `[discriminador]`
+      *Verificado:* el token base64 con `role: ADMIN` da 401 como header `Bearer` y como
+      cookie. También dan 401 el payload real con `alg: none` sin firma y el payload real
+      con la firma recortada. Control: el token original da 200.
+- [x] **F7-5 — Un refresh token ya usado devuelve 401** `[discriminador]`
       Rotar una vez y reintentar con el token viejo. Hoy funcionaría indefinidamente porque
       no hay estado del lado del servidor.
-- [ ] **F7-6 — Un token firmado con otro secreto devuelve 401** `[discriminador]`
+      *Verificado:* rotar da 200 y reusar el viejo da 401. Después del reuso, el refresh
+      nuevo también da 401: el reuso revoca todas las sesiones del usuario (F5-4).
+- [x] **F7-6 — Un token firmado con otro secreto devuelve 401** `[discriminador]`
       Confirma que la verificación mira la firma y no solo la forma del payload.
+      *Verificado* con el mismo payload (usuario real) y solo la firma cambiada: con
+      `JWT_SECRET` da 200 (control); con otro secreto, 401; con `JWT_REFRESH_SECRET`, 401.
+      Un refresh usado como access da 401, y un access usado como refresh también.
 - [x] **F7-7 — Una familia no ve los datos de otra** `[discriminador]`
       Registrar dos familias. A crea un gasto; B lo pide por id y recibe 404. Hoy el
       scoping no funciona en ningún momento, así que B lo vería —si la ruta no
