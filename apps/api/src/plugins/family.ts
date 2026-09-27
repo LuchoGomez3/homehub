@@ -1,8 +1,11 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import fp from 'fastify-plugin';
 import { prisma } from '../server.js';
 import { logger } from '../utils/logger.js';
 
-export async function familyPlugin(fastify: FastifyInstance) {
+async function family(fastify: FastifyInstance) {
+  fastify.decorateRequest('family', null);
+
   // Ensure user has a family and set familyId in request
   fastify.addHook('preHandler', async (request, reply) => {
     if (!request.user) return;
@@ -39,3 +42,8 @@ export async function familyPlugin(fastify: FastifyInstance) {
   });
 
 }
+
+// Mismo motivo que authPlugin: sin fastify-plugin el hook no llega a las
+// rutas. Depende de 'auth' porque lee request.user, que se completa en el
+// preHandler de auth, registrado antes.
+export const familyPlugin = fp(family, { name: 'family', dependencies: ['auth'] });

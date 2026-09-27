@@ -142,17 +142,19 @@ El bloque cierra cuando **un token fabricado a mano devuelve 401** — la prueba
       Access de 15 minutos con `JWT_SECRET` y refresh de 7 días con `JWT_REFRESH_SECRET`, en
       namespaces separados. Las dos variables ya existen y el validador de entorno ya las
       exige. → `apps/api/src/server.ts`, `plugins/auth.ts`
-- [ ] **F4-4 — El `preHandler` verifica firma antes de tocar la base**
+- [x] **F4-4 — El `preHandler` verifica firma antes de tocar la base**
       Hoy decodifica y consulta Postgres con lo que venga. Debe rechazar en la verificación,
       antes de cualquier query. → `apps/api/src/plugins/auth.ts`
-      *Escrito, pero no aplica:* `authPlugin` no está envuelto en `fastify-plugin`, así que
-      Fastify encapsula su hook y sus decoradores y no llegan a las rutas de
-      `registerRoutes`. Además, `decorateRequest('user')` choca con el que ya registra
-      `@fastify/jwt`, y el servidor no arrancaría. Lo mismo pasa con `familyPlugin`. Ver F4-5.
-- [ ] **F4-5 — Sacar `authPlugin` y `familyPlugin` del encapsulamiento**
+      *Recién empezó a aplicar con F4-5.* Antes estaba escrito pero no se ejecutaba.
+- [x] **F4-5 — Sacar `authPlugin` y `familyPlugin` del encapsulamiento**
       Envolverlos con `fastify-plugin` (declararlo como dependencia) y eliminar el
       `decorateRequest('user')` duplicado. *(Hueco del plan original: viene del código
       heredado y ningún typecheck lo detecta.)* → `plugins/auth.ts`, `plugins/family.ts`
+      *Verificado con `inject`:* se armó una instancia con los mismos plugins y una ruta
+      registrada como hermana, igual que en `registerRoutes`. Sin token → 401; token base64
+      fabricado → 401; firmado con otro secreto → 401; token válido → 200, con
+      `request.user`, `request.family` y `hashPassword` visibles desde la ruta. Todavía no
+      se probó con el servidor completo (ver F7-2).
 
 ## Fase 5 — Rutas sobre cookies httpOnly
 
@@ -194,6 +196,13 @@ errores. No corrieron todavía: los verifica la Fase 7.*
       Cero errores. No «los que quedan son de tipos nomás».
 - [ ] **F7-2 — El servidor levanta y documenta** `[compuerta]`
       `/health` responde 200 y `/docs` muestra el OpenAPI con las rutas registradas.
+      *Dos bloqueos heredados, encontrados al verificar F4-5:*
+      1. `server.ts` solo llama a `start()` si `` import.meta.url === `file://${process.argv[1]}` ``.
+         La ruta del repo tiene un espacio (`Carrear Path`), la URL lo codifica como `%20`
+         y la comparación nunca da igual: el proceso termina sin levantar nada y sin error.
+         Hay que comparar contra `pathToFileURL(process.argv[1]).href`.
+      2. `io` se decora dos veces, en `socket/index.ts:84` y en `server.ts:184`, y el arranque
+         tira `FST_ERR_DEC_ALREADY_PRESENT`. Conviene resolverlo junto con F6.
 - [ ] **F7-3 — Flujo completo con curl contra Postgres real** `[compuerta]`
       `register` → `me` devuelve 200 → `refresh` entrega un par nuevo → `logout` → `me` ahora
       devuelve 401. Con cookies, sin tocar el body.

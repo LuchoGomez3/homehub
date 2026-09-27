@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import bcrypt from 'bcryptjs';
+import fp from 'fastify-plugin';
 import { prisma } from '../server.js';
 import { ACCESS_COOKIE, accessJwt } from '../lib/tokens.js';
 import type { TokenPayload } from '../types/fastify.js';
@@ -35,10 +36,11 @@ function extractAccessToken(request: FastifyRequest): string | null {
   return request.cookies?.[ACCESS_COOKIE] ?? null;
 }
 
-export async function authPlugin(fastify: FastifyInstance) {
+async function auth(fastify: FastifyInstance) {
   fastify.decorate('hashPassword', hashPassword);
   fastify.decorate('verifyPassword', verifyPassword);
-  fastify.decorateRequest('user', null);
+  // `request.user` no se decora aca: ya lo hace @fastify/jwt al registrarse,
+  // y decorarlo dos veces tira FST_ERR_DEC_ALREADY_PRESENT al arrancar.
 
   fastify.addHook('preHandler', async (request) => {
     const path = request.url.split('?')[0];
@@ -89,3 +91,13 @@ export async function authPlugin(fastify: FastifyInstance) {
     }
   });
 }
+
+/**
+ * Envuelto en fastify-plugin para que el hook y los decoradores no queden
+ * encapsulados: sin esto no alcanzan a las rutas que se registran despues
+ * en server.ts, y ninguna ruta queda protegida.
+ */
+export const authPlugin = fp(auth, {
+  name: 'auth',
+  dependencies: ['@fastify/sensible', '@fastify/cookie', '@fastify/jwt'],
+});
