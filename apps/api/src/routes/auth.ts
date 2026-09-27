@@ -8,6 +8,7 @@ import {
   issueSession,
   refreshJwt,
 } from '../lib/tokens.js';
+import { sessionRoom, userRoom } from '../lib/rooms.js';
 import type { TokenPayload } from '../types/fastify.js';
 
 // ---------------------------------------------------------------------------
@@ -162,6 +163,7 @@ export const authRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
           where: { userId: stored.userId, revokedAt: null },
           data: { revokedAt: new Date() },
         });
+        fastify.io.in(userRoom(stored.userId)).disconnectSockets(true);
         clearSessionCookies(reply);
         throw fastify.httpErrors.unauthorized('Refresh token reuse detected');
       }
@@ -191,10 +193,17 @@ export const authRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       if (raw) {
         // Revocar por hash, sin verificar firma: si el token es basura no
         // matchea nada y no pasa nada. Logout es idempotente.
-        await prisma.refreshToken.updateMany({
-          where: { tokenHash: hashToken(raw), revokedAt: null },
-          data: { revokedAt: new Date() },
+        const session = await prisma.refreshToken.findUnique({
+          where: { tokenHash: hashToken(raw) },
+          select: { id: true, revokedAt: true },
         });
+        if (session && !session.revokedAt) {
+          await prisma.refreshToken.update({
+            where: { id: session.id },
+            data: { revokedAt: new Date() },
+          });
+        }
+        if (session) fastify.io.in(sessionRoom(session.id)).disconnectSockets(true);
       }
       clearSessionCookies(reply);
       return { success: true, data: { message: 'Logged out successfully' } };

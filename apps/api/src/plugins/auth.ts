@@ -1,9 +1,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import bcrypt from 'bcryptjs';
 import fp from 'fastify-plugin';
-import { prisma } from '../server.js';
-import { ACCESS_COOKIE, accessJwt } from '../lib/tokens.js';
-import type { TokenPayload } from '../types/fastify.js';
+import { ACCESS_COOKIE } from '../lib/tokens.js';
+import { verifyAccessSession } from '../lib/session.js';
 
 const BEARER = 'Bearer ';
 
@@ -51,50 +50,14 @@ async function auth(fastify: FastifyInstance) {
       throw fastify.httpErrors.unauthorized('Authentication required');
     }
 
-    // La firma se verifica ANTES de cualquier consulta a la base. Un token
-    // invalido, vencido o firmado con otro secreto muere aca.
-    let payload: TokenPayload;
-    try {
-      payload = accessJwt(fastify).verify<TokenPayload>(token);
-    } catch {
-      throw fastify.httpErrors.unauthorized('Invalid or expired token');
+    // Firma, tipo y sesion viva (lib/session.ts). Un token invalido,
+    // vencido, de otro secreto o de una sesion revocada muere aca.
+    const session = await verifyAccessSession(fastify, token);
+    if (!session) {
+      throw fastify.httpErrors.unauthorized('Invalid or expired session');
     }
 
-    if (payload.type !== 'access' || !payload.sid) {
-      throw fastify.httpErrors.unauthorized('Wrong token type');
-    }
-
-    // La sesion y el usuario en una sola consulta. Una sesion revocada
-    // (logout, rotacion o reuso detectado) invalida el access en el acto,
-    // aunque la firma siga siendo valida.
-    const session = await prisma.refreshToken.findUnique({
-      where: { id: payload.sid },
-      select: {
-        revokedAt: true,
-        user: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            role: true,
-            familyId: true,
-            avatar: true,
-            language: true,
-            theme: true,
-          },
-        },
-      },
-    });
-
-    if (!session || session.revokedAt) {
-      throw fastify.httpErrors.unauthorized('Session revoked');
-    }
-    const { user } = session;
-    if (user.id !== payload.sub || user.familyId !== payload.familyId) {
-      throw fastify.httpErrors.unauthorized('User not found or family mismatch');
-    }
-
-    request.user = user;
+    request.user = session.user;
   });
 
   fastify.decorate('requireAdmin', async (request: FastifyRequest, _reply: FastifyReply) => {

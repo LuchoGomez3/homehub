@@ -3,6 +3,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import type { JWT } from '@fastify/jwt';
 import type { TokenPayload } from '../types/fastify.js';
 import { prisma } from '../server.js';
+import { sessionRoom } from './rooms.js';
 
 export const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
 export const REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
@@ -121,6 +122,10 @@ export async function issueSession(
       where: { id: replaces.id },
       data: { revokedAt: new Date(), replacedById: created.id },
     });
+    // Los sockets abiertos con la sesion vieja pasan a la nueva: la rotacion
+    // no los corta, pero un logout posterior tiene que encontrarlos.
+    fastify.io.in(sessionRoom(replaces.id)).socketsJoin(sessionRoom(created.id));
+    fastify.io.in(sessionRoom(replaces.id)).socketsLeave(sessionRoom(replaces.id));
   }
 
   setSessionCookies(reply, accessToken, refreshToken);

@@ -1,8 +1,11 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { createClient } from 'redis';
-import { FastifyInstance } from 'fastify';
-import { prisma } from '../server.js';
+import type { FastifyInstance } from 'fastify';
+import { env } from '../config/env.js';
+import { ACCESS_COOKIE } from '../lib/tokens.js';
+import { verifyAccessSession } from '../lib/session.js';
+import { sessionRoom, userRoom } from '../lib/rooms.js';
 import { logger } from '../utils/logger.js';
 
 interface AuthenticatedSocket extends Socket {
@@ -10,41 +13,51 @@ interface AuthenticatedSocket extends Socket {
   familyId?: string;
 }
 
+/**
+ * Mismo origen del token que el preHandler de HTTP: la cookie httpOnly, que
+ * el navegador manda en el handshake, o un token explicito.
+ */
+function extractHandshakeToken(fastify: FastifyInstance, socket: Socket): string | null {
+  const explicit = socket.handshake.auth?.token;
+  if (typeof explicit === 'string' && explicit) return explicit.replace(/^Bearer /, '');
+
+  const header = socket.handshake.headers.authorization;
+  if (header?.startsWith('Bearer ')) return header.slice('Bearer '.length);
+
+  const cookieHeader = socket.handshake.headers.cookie;
+  if (cookieHeader) return fastify.parseCookie(cookieHeader)[ACCESS_COOKIE] ?? null;
+
+  return null;
+}
+
 export async function setupSocketIO(
   fastify: FastifyInstance,
   redisClient: ReturnType<typeof createClient>,
-  redisSubClient: ReturnType<typeof createClient>
+  redisSubClient: ReturnType<typeof createClient>,
 ) {
   const io = new SocketIOServer({
     cors: {
-      origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'],
+      origin: env.CORS_ORIGIN.split(','),
       credentials: true,
     },
     adapter: createAdapter(redisClient, redisSubClient),
   });
 
-  // Authentication middleware
+  // Mismo chequeo que HTTP (lib/session.ts): firma, tipo y sesion viva.
   io.use(async (socket: AuthenticatedSocket, next) => {
     try {
-      const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.replace('Bearer ', '');
+      const token = extractHandshakeToken(fastify, socket);
       if (!token) return next(new Error('Authentication required'));
 
-      // Parse token (same logic as auth plugin)
-      const parsed = parseToken(token);
-      if (!parsed || parsed.type !== 'access') return next(new Error('Invalid token'));
+      const session = await verifyAccessSession(fastify, token);
+      if (!session) return next(new Error('Invalid or expired session'));
 
-      // Verify user exists
-      const user = await prisma.user.findUnique({
-        where: { id: parsed.sub },
-        select: { id: true, familyId: true },
-      });
-
-      if (!user || user.familyId !== parsed.familyId) return next(new Error('User not found'));
-
-      socket.userId = user.id;
-      socket.familyId = user.familyId;
+      socket.userId = session.user.id;
+      socket.familyId = session.user.familyId;
+      socket.join(sessionRoom(session.sid));
       next();
     } catch (err) {
+      logger.error({ err }, 'Socket auth failed');
       next(new Error('Authentication failed'));
     }
   });
@@ -56,7 +69,7 @@ export async function setupSocketIO(
     socket.join(`family:${familyId}`);
 
     // Join user room for direct messages
-    socket.join(`user:${userId}`);
+    socket.join(userRoom(userId!));
 
     // Track presence
     socket.to(`family:${familyId}`).emit('presence:join', { userId, name: '', familyId });
@@ -80,17 +93,13 @@ export async function setupSocketIO(
     });
   });
 
+  // Sin attach, Socket.IO no escucha en ningun puerto: los clientes no
+  // tenian a donde conectarse. Comparte el servidor HTTP de Fastify.
+  io.attach(fastify.server);
+  fastify.addHook('onClose', async () => {
+    await io.close();
+  });
+
   // El decorador `io` lo registra server.ts con el valor que se devuelve aca.
   return io;
-}
-
-function parseToken(token: string): { sub: string; familyId: string; role: string; type: string; exp: number } | null {
-  try {
-    const payload = token.replace('Bearer ', '');
-    const decoded = JSON.parse(Buffer.from(payload, 'base64url').toString());
-    if (decoded.exp * 1000 < Date.now()) return null;
-    return decoded;
-  } catch {
-    return null;
-  }
 }

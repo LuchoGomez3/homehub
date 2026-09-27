@@ -257,10 +257,33 @@ errores. No corrieron todavía: los verifica la Fase 7.*
 
 > El canal de tiempo real tiene su propia copia del parser inseguro.
 
-- [ ] **F6-1 — Borrar el `parseToken` duplicado del socket**
+- [x] **F6-1 — Borrar el `parseToken` duplicado del socket**
       Reemplazarlo por la verificación real de JWT leyendo la cookie del handshake. Con el
       parser viejo, un token inventado entra al room de cualquier familia.
       → `apps/api/src/socket/index.ts`
+      *Hecho:*
+      - La verificación de firma, tipo y sesión viva pasó a `lib/session.ts`
+        (`verifyAccessSession`), y la usan el `preHandler` de HTTP y el handshake del
+        socket. Queda un solo chequeo de acceso.
+      - El handshake toma el token de la cookie `httpOnly` o de uno explícito, igual que
+        HTTP.
+      - *Hueco del plan original:* Socket.IO nunca se enganchaba al servidor HTTP
+        (`new SocketIOServer()` sin `attach`), así que no escuchaba en ningún puerto.
+        Ahora comparte el servidor de Fastify y se cierra en `onClose`.
+      - Revocar una sesión corta sus sockets. Cada socket entra a `session:<sid>`; logout
+        desconecta esa sala y el reuso de refresh desconecta `user:<id>`. La rotación mueve
+        los sockets a la sala de la sesión nueva, sin cortarlos.
+      *Verificado* con `socket.io-client` contra el servidor real:
+      - Handshake sin token, con el token base64 fabricado o con un refresh como access →
+        rechazado.
+      - Con la cookie `httpOnly` → conecta.
+      - A crea un gasto: el socket de A recibe el evento y el de B (otra familia) no.
+      - Después de un refresh el socket sigue conectado; después del logout se desconecta,
+        y reconectar con el access previo al logout se rechaza.
+      - Reusar un refresh viejo desconecta los dos sockets abiertos de ese usuario, y el
+        socket de la otra familia no se entera.
+      *Pendiente del frontend:* `use-socket.ts` manda el token desde el store en
+        `auth.token`. Con cookies alcanza con `withCredentials: true` (bloque 3).
 
 ## Fase 7 — Verificación
 
