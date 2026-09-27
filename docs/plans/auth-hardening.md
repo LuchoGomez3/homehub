@@ -105,11 +105,15 @@ El bloque cierra cuando **un token fabricado a mano devuelve 401** — la prueba
         filtros tipados para las fechas y los montos.
       Los 28 errores que quedan no son de este paso: 22 son de F2-7, 4 de `seed.ts` (F2-5)
       y 2 de F5-5.
-- [ ] **F2-5 — Imports y `any` sueltos**
+- [x] **F2-5 — Imports y `any` sueltos**
       `import { crypto } from 'crypto'` no es un export válido; dos parámetros sin tipo
       en `seed.ts`. → `routes/invitations.ts`, `prisma/seed.ts`
-      *Parcial:* `invitations.ts` usa `randomBytes` de `node:crypto`. `seed.ts` todavía
-      tiene 4 errores.
+      *Hecho:* `invitations.ts` usa `randomBytes` de `node:crypto`. En `seed.ts` el problema
+      real no eran parámetros sin tipo sino los arrays de ejemplo: se inferían como `string`
+      y Prisma espera sus enums. Ahora cada array usa `satisfies` con el
+      `<Modelo>UncheckedCreateInput`, que además valida cada valor contra el enum.
+      *Verificado:* `pnpm db:seed` corre y carga 2 usuarios, 5 gastos, 4 facturas, 5 todos,
+      6 ítems de compra, 4 eventos y 6 asistencias. Después se borró la familia demo.
 - [x] **F2-6 — Sacar el registro de `shoppingRoutes`**
       El módulo no existe y el servidor no puede levantar con el import roto. Escribirlo
       es trabajo de feature: se quita el registro con un `TODO` y queda para el bloque de
@@ -238,8 +242,10 @@ errores. No corrieron todavía: los verifica la Fase 7.*
 > La parte que nunca se hizo. Un paso no está listo porque se escribió: está listo porque
 > corrió.
 
-- [ ] **F7-1 — `typecheck` verde en `apps/api`** `[compuerta]`
+- [x] **F7-1 — `typecheck` verde en `apps/api`** `[compuerta]`
       Cero errores. No «los que quedan son de tipos nomás».
+      *Verificado el 2026-09-27:* `pnpm --filter @homehub/api typecheck` → exit 0. La línea
+      de base era de 281 errores.
 - [x] **F7-2 — El servidor levanta y documenta** `[compuerta]`
       `/health` responde 200 y `/docs` muestra el OpenAPI con las rutas registradas.
       *Dos bloqueos heredados, encontrados al verificar F4-5 y ya resueltos:*
