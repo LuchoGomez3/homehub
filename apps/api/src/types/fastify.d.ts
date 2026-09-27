@@ -28,7 +28,10 @@ export interface RequestFamily {
 /**
  * Cuerpo de los JWT. `type` distingue access de refresh para que un token
  * de un tipo nunca sirva donde se espera el otro, aun compartiendo forma.
- * `jti` solo va en los refresh: identifica la fila de RefreshToken.
+ * `jti` solo va en los refresh y es el id de su fila en RefreshToken.
+ * `sid` solo va en los access y apunta a esa misma fila: si la sesion se
+ * revoca (logout, rotacion, reuso), el access deja de servir en el acto,
+ * sin esperar a que venza.
  */
 export interface TokenPayload {
   sub: string;
@@ -36,6 +39,7 @@ export interface TokenPayload {
   role: string;
   type: 'access' | 'refresh';
   jti?: string;
+  sid?: string;
 }
 
 declare module '@fastify/jwt' {

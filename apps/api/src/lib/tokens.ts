@@ -38,12 +38,13 @@ export function newTokenId(): string {
 
 type SessionUser = { id: string; familyId: string; role: string };
 
-export function signAccessToken(fastify: FastifyInstance, user: SessionUser): string {
+export function signAccessToken(fastify: FastifyInstance, user: SessionUser, sid: string): string {
   const payload: TokenPayload = {
     sub: user.id,
     familyId: user.familyId,
     role: user.role,
     type: 'access',
+    sid,
   };
   return accessJwt(fastify).sign(payload);
 }
@@ -99,12 +100,15 @@ export async function issueSession(
   user: SessionUser,
   replaces?: { id: string },
 ): Promise<void> {
+  // Un mismo id para la fila, el jti del refresh y el sid del access: los
+  // dos tokens quedan atados a una sesion que se puede revocar.
   const jti = newTokenId();
-  const accessToken = signAccessToken(fastify, user);
+  const accessToken = signAccessToken(fastify, user, jti);
   const refreshToken = signRefreshToken(fastify, user, jti);
 
   const created = await prisma.refreshToken.create({
     data: {
+      id: jti,
       tokenHash: hashToken(refreshToken),
       userId: user.id,
       expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_SECONDS * 1000),

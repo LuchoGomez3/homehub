@@ -237,6 +237,22 @@ errores. No corrieron todavía: los verifica la Fase 7.*
       persona es la única admin de su familia actual.
       → `routes/invitations.ts`, `routes/auth.ts` (`issueSession` pasa a `lib/tokens.ts`)
 
+- [x] **F5-6 — El access token muere con su sesión**
+      *Decidido el 2026-09-27, a partir de F7-3.* El access lleva un `sid` que es el id de su
+      fila en `RefreshToken`, el mismo valor que el `jti` del refresh. El `preHandler`
+      busca la sesión y el usuario en una sola consulta, y rechaza con 401 si la sesión no
+      existe o está revocada. Logout, rotación y reuso detectado cortan el access en el
+      momento. No suma consultas: antes ya se buscaba el usuario en cada request.
+      → `lib/tokens.ts`, `plugins/auth.ts`, `types/fastify.d.ts`
+      *Verificado* contra el servidor real:
+      - Access reenviado después del logout → 401 (antes, 200).
+      - Access viejo después de rotar → 401; el nuevo → 200.
+      - Después de reusar un refresh ya rotado, el access más reciente → 401.
+      - Firmados con el `JWT_SECRET` real: sin `sid` → 401; `sid` inventado → 401; `sid`
+        de la sesión de otro usuario → 401. Control, con el `sid` propio → 200.
+      *Consecuencia para el frontend:* una request que salga con el access viejo mientras
+      se rota recibe 401. El cliente tiene que reintentarla una vez después del refresh.
+
 ## Fase 6 — Cerrar el WebSocket
 
 > El canal de tiempo real tiene su propia copia del parser inseguro.
@@ -275,11 +291,8 @@ errores. No corrieron todavía: los verifica la Fase 7.*
       `me` 200 → logout 200 → `me` 401. El refresh reenviado a mano después del logout da
       401 (revocado en la base). Login 200, login con clave mala 401. Ninguna respuesta
       trae tokens en el body.
-      **Consecuencia conocida, a decidir:** el access token reenviado a mano después del
-      logout sigue dando 200 hasta que vence (15 min). Es el costo de verificar solo la
-      firma, sin consultar la base; `decisions/0001` no lo menciona. Las opciones son
-      aceptar esa ventana y documentarla, o agregar un chequeo de sesión en el `preHandler`
-      (por ejemplo, un `sid` en el access token que apunte a la fila de `RefreshToken`).
+      El access token reenviado a mano después del logout seguía dando 200 hasta vencer
+      (15 min). Se resolvió en F5-6.
 - [x] **F7-4 — Un token fabricado a mano devuelve 401** `[discriminador]`
       Generar el token base64 del análisis con `role: ADMIN` y mandarlo. Hoy devuelve 200 y
       entrega la sesión. Si este paso no pasa, nada de lo anterior sirvió.

@@ -60,25 +60,37 @@ async function auth(fastify: FastifyInstance) {
       throw fastify.httpErrors.unauthorized('Invalid or expired token');
     }
 
-    if (payload.type !== 'access') {
+    if (payload.type !== 'access' || !payload.sid) {
       throw fastify.httpErrors.unauthorized('Wrong token type');
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: payload.sub },
+    // La sesion y el usuario en una sola consulta. Una sesion revocada
+    // (logout, rotacion o reuso detectado) invalida el access en el acto,
+    // aunque la firma siga siendo valida.
+    const session = await prisma.refreshToken.findUnique({
+      where: { id: payload.sid },
       select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        familyId: true,
-        avatar: true,
-        language: true,
-        theme: true,
+        revokedAt: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            familyId: true,
+            avatar: true,
+            language: true,
+            theme: true,
+          },
+        },
       },
     });
 
-    if (!user || user.familyId !== payload.familyId) {
+    if (!session || session.revokedAt) {
+      throw fastify.httpErrors.unauthorized('Session revoked');
+    }
+    const { user } = session;
+    if (user.id !== payload.sub || user.familyId !== payload.familyId) {
       throw fastify.httpErrors.unauthorized('User not found or family mismatch');
     }
 
