@@ -284,8 +284,12 @@ No es un problema del CI: es que el proyecto nunca pasó por un `pnpm install` (
 [`docs/analysis/2026-09-12-estado-inicial.md`](docs/analysis/2026-09-12-estado-inicial.md)).
 Para que quede verde hace falta, en orden:
 
-1. `pnpm-lock.yaml` commiteado (F1-3 del plan).
-2. `pnpm typecheck` sin errores en los cuatro workspaces (F2, F7-1).
+1. ~~`pnpm-lock.yaml` commiteado (F1-3 del plan).~~ Hecho con el plan de auth.
+   `pnpm install --frozen-lockfile` pasa.
+2. `pnpm typecheck` sin errores en los cuatro workspaces. **`@homehub/api` ya está en cero**
+   (F7-1, 2026-09-27). Los otros tres fallan por configuración de TypeScript más que
+   por código: `web` tiene el `rootDir` apuntando fuera de la app, y `shared` y `ui` no
+   tienen JSX habilitado ni resuelven sus módulos.
 3. Un `.eslintrc` real en `packages/config` que los cuatro workspaces hereden (hallazgo A8).
 4. Que `vitest run` no falle sin tests: `--passWithNoTests` o, mejor, el primer test (A8).
 5. Que `next build` termine, lo que depende de C1–C5 del análisis.
