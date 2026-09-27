@@ -15,6 +15,11 @@ Si algo se decidió, se analizó o se especificó y no está acá, la próxima p
 | `flows/` | Cómo funciona hoy cada flujo del producto: autenticación, gastos, invitaciones. | **Vivos.** Se actualizan en el mismo commit que cambia el código que describen. |
 | `plans/` | Checklists de trabajo en curso, con su estado. | **Temporales.** Se archivan o se borran cuando el trabajo termina y lo aprendido pasó a `flows/` o `decisions/`. |
 
+Las reglas de desarrollo —ramas, commits, pull requests, CI— no están acá sino en
+[`CODE_GUIDE.md`](../CODE_GUIDE.md) en la raíz, al lado del README, porque son lo primero
+que hay que leer antes de tocar código. El porqué de esas reglas sí vive acá, en
+`decisions/0003`.
+
 ## La regla que sostiene todo esto
 
 Un documento vivo que quedó desactualizado es peor que no tenerlo: se lee con
@@ -40,6 +45,9 @@ confianza y miente. Por eso la división de arriba no es cosmética.
   Una sola fuente de verdad para la sesión, emitida por la API.
 - [`decisions/0002-documentacion-viva-en-el-repo.md`](decisions/0002-documentacion-viva-en-el-repo.md) —
   Por qué existe esta carpeta y qué papel juegan los artefactos visuales.
+- [`decisions/0003-ramas-stg-main-y-verificacion-en-ci.md`](decisions/0003-ramas-stg-main-y-verificacion-en-ci.md) —
+  Por qué hay una rama `stg`, por qué se mergea con rebase y por qué el CI corre aunque
+  esté en rojo.
 
 ### Flujos
 

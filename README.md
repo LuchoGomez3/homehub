@@ -164,13 +164,12 @@ Generado con `ui-ux-pro-max` skill:
 
 MIT - Ver [LICENSE](LICENSE) para detalles.
 
-## 🤝 Contribuir
+## 🛠️ Cómo se desarrolla
 
-1. Fork el repo
-2. Crea branch feature (`git checkout -b feature/nueva-funcionalidad`)
-3. Commit cambios (`git commit -am 'Add: nueva funcionalidad'`)
-4. Push branch (`git push origin feature/nueva-funcionalidad`)
-5. Abre Pull Request
+El proyecto no está abierto a contribuciones por ahora. Las reglas de ramas, commits, pull
+requests y CI están en [CODE_GUIDE.md](CODE_GUIDE.md). En resumen: ramas cortas desde
+`stg`, commits en inglés con formato `type(scope): subject`, pull request contra `stg` con
+el CI en verde, merge con rebase. `main` solo recibe releases desde `stg`.
 
 ---
 
