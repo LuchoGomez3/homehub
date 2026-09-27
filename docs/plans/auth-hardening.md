@@ -131,12 +131,21 @@ El bloque cierra cuando **un token fabricado a mano devuelve 401** — la prueba
       `create` para que TypeScript lo acepte, y la extensión lo pisa igual con el de la
       sesión. En los `update`, un `familyId` en `data` también se pisa. El typecheck bajó
       de 28 a 6 errores: 4 de `seed.ts` (F2-5) y 2 de F5-5.
-- [ ] **F2-8 — Validar que `assigneeId` y `attendeeIds` sean de la misma familia**
+- [x] **F2-8 — Validar que `assigneeId` y `attendeeIds` sean de la misma familia**
       *Hueco encontrado en F2-7.* `todos` y `events` conectan usuarios por id sin comprobar
       a qué familia pertenecen, y el `include` devuelve el nombre y el avatar de ese
       usuario. Con el id de un usuario de otra familia se puede asignarlo y leer sus datos
       públicos. Hay que verificar los ids contra `request.family.id` antes del `connect`.
       → `routes/todos.ts`, `routes/events.ts`
+      *Hecho:* `assertFamilyMembers` (`lib/members.ts`) cuenta los ids en la familia antes de
+      cada `connect` o `set`. Responde 400 con un mensaje que no distingue "no existe" de "es
+      de otra familia".
+      *Verificado* contra el servidor real con dos familias:
+      - Todo con assignee de B → 400; con un id inexistente → 400; con el propio → 201.
+      - `PATCH` de un todo a un assignee de B → 400.
+      - Evento con asistentes [A, B] → 400; con [A, A] → 201.
+      - `PATCH` de un evento con asistentes [B] → 400.
+      Los rechazados no dejaron nada escrito en la base.
 
 ## Fase 3 — Sesiones en la base
 
@@ -298,6 +307,9 @@ errores. No corrieron todavía: los verifica la Fase 7.*
 - El módulo de supermercado (`routes/shopping.ts`): se quita el registro en F2-6 y se
   escribe en su propio bloque.
 - Todo el frontend: C1 a C5 quedan para el bloque 3.
+- `PATCH /api/todos/:id` borra `dueDate` si el body no lo trae: calcula
+  `request.body.dueDate ? new Date(...) : null` y no distingue "no vino" de `null`.
+  Encontrado en F2-8.
 
 ## Entorno verificado
 

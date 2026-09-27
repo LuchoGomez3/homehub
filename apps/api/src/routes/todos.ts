@@ -3,6 +3,7 @@ import { Type } from '@sinclair/typebox';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../server.js';
 import { DateTime } from '../lib/schemas.js';
+import { assertFamilyMembers } from '../lib/members.js';
 import { createTodoSchema, updateTodoSchema, todoFiltersSchema, TodoStatus, Priority } from '@homehub/shared';
 
 const createTodoBody = Type.Object({
@@ -118,6 +119,9 @@ export const todoRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
     schema: { body: createTodoBody, response: { 201: Type.Object({ success: Type.Boolean(), data: todoResponse }) } },
   }, async (request, reply) => {
     const familyPrisma = fastify.familyPrisma(request.family!.id);
+    if (request.body.assigneeId) {
+      await assertFamilyMembers(fastify, request.family!.id, [request.body.assigneeId]);
+    }
     const todo = await familyPrisma.todo.create({
       data: { ...request.body, dueDate: request.body.dueDate ? new Date(request.body.dueDate) : null, familyId: request.family!.id },
       include: { assignee: { select: { id: true, name: true, avatar: true } } },
@@ -133,6 +137,9 @@ export const todoRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
     const familyPrisma = fastify.familyPrisma(request.family!.id);
     const existing = await familyPrisma.todo.findUnique({ where: { id: request.params.id } });
     if (!existing) throw fastify.httpErrors.notFound('Todo not found');
+    if (request.body.assigneeId) {
+      await assertFamilyMembers(fastify, request.family!.id, [request.body.assigneeId]);
+    }
 
     const todo = await familyPrisma.todo.update({
       where: { id: request.params.id },

@@ -3,6 +3,7 @@ import { Type } from '@sinclair/typebox';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../server.js';
 import { DateTime } from '../lib/schemas.js';
+import { assertFamilyMembers } from '../lib/members.js';
 import { createEventSchema, updateEventSchema, eventFiltersSchema, Recurrence } from '@homehub/shared';
 
 const createEventBody = Type.Object({
@@ -120,6 +121,7 @@ export const eventRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   }, async (request, reply) => {
     const familyPrisma = fastify.familyPrisma(request.family!.id);
     const { attendeeIds, ...data } = request.body;
+    if (attendeeIds) await assertFamilyMembers(fastify, request.family!.id, attendeeIds);
     const event = await familyPrisma.event.create({
       data: {
         ...data,
@@ -143,6 +145,7 @@ export const eventRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
     if (!existing) throw fastify.httpErrors.notFound('Event not found');
 
     const { attendeeIds, ...data } = request.body;
+    if (attendeeIds) await assertFamilyMembers(fastify, request.family!.id, attendeeIds);
     const event = await familyPrisma.event.update({
       where: { id: request.params.id },
       data: {
