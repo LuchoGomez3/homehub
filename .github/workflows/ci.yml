@@ -1,0 +1,83 @@
+# Verificacion de cada pull request a stg y main, y de cada push a esas ramas.
+# Que verifica cada job y como correrlo localmente: CODE_GUIDE.md §5.
+name: CI
+
+on:
+  pull_request:
+    branches: [stg, main]
+  push:
+    branches: [stg, main]
+
+permissions:
+  contents: read
+
+# Un push nuevo al mismo PR cancela la corrida anterior: solo importa la ultima.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HUSKY: 0
+  TURBO_TELEMETRY_DISABLED: 1
+  NEXT_TELEMETRY_DISABLED: 1
+
+jobs:
+  # Cada commit del PR cumple commitlint.config.cjs. Solo tiene sentido sobre un PR:
+  # en un push a stg/main los commits ya pasaron por aca.
+  commits:
+    name: commits
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Validar los mensajes de commit del PR
+        run: >
+          npx --yes @commitlint/cli@19
+          --from origin/${{ github.base_ref }}
+          --to ${{ github.event.pull_request.head.sha }}
+          --verbose
+
+  # Instala, genera el cliente de Prisma y corre las cuatro verificaciones del monorepo
+  # en orden de costo creciente. Cualquier paso en rojo corta el job.
+  quality:
+    name: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # Lee la version de pnpm del campo "packageManager" de package.json.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      # Fuera de turbo a proposito: la tarea db:generate no declara outputs y un cache
+      # hit dejaria el typecheck sin cliente de Prisma.
+      - name: Generar el cliente de Prisma
+        run: pnpm --filter @homehub/api exec prisma generate
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
