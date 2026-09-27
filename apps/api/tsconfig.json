@@ -1,17 +1,11 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src",
-    "composite": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@homehub/shared/*": ["../../packages/shared/src/*"]
-    }
+      "@/*": ["src/*"]
+    },
+    "types": ["node"]
   },
-  "include": ["src/**/*", "prisma/**/*"],
-  "references": [
-    { "path": "../../packages/shared" }
-  ]
+  "include": ["src/**/*", "prisma/**/*"]
 }

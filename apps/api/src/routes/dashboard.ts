@@ -1,14 +1,15 @@
-import { FastifyInstance } from 'fastify';
+import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { Type } from '@sinclair/typebox';
 import { prisma } from '../server.js';
+import { DateTime } from '../lib/schemas.js';
 
-export async function dashboardRoutes(fastify: FastifyInstance) {
-  const familyPrisma = fastify.familyPrisma(request => request.family!.id);
+export const dashboardRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
 
   // Dashboard summary
   fastify.get('/', {
-    schema: { response: { 200: Type.Object({ success: Type.Boolean(), data: Type.Object({ expensesThisMonth: Type.Number(), billsPending: Type.Number(), billsOverdue: Type.Number(), todosPending: Type.Number(), todosUrgent: Type.Number(), shoppingPending: Type.Number(), upcomingEvents: Type.Number(), recentExpenses: Type.Array(Type.Object({ id: Type.String(), amount: Type.Number(), category: Type.String(), date: Type.String() })), upcomingBills: Type.Array(Type.Object({ id: Type.String(), name: Type.String(), amount: Type.Number(), dueDate: Type.String(), status: Type.String() })), urgentTodos: Type.Array(Type.Object({ id: Type.String(), title: Type.String(), priority: Type.String(), dueDate: Type.Union([Type.String(), Type.Null()]) })), shoppingItems: Type.Array(Type.Object({ id: Type.String(), name: Type.String(), category: Type.String() })) }) }) } },
+    schema: { response: { 200: Type.Object({ success: Type.Boolean(), data: Type.Object({ expensesThisMonth: Type.Number(), billsPending: Type.Number(), billsOverdue: Type.Number(), todosPending: Type.Number(), todosUrgent: Type.Number(), shoppingPending: Type.Number(), upcomingEvents: Type.Number(), recentExpenses: Type.Array(Type.Object({ id: Type.String(), amount: Type.Number(), category: Type.String(), date: DateTime() })), upcomingBills: Type.Array(Type.Object({ id: Type.String(), name: Type.String(), amount: Type.Number(), dueDate: DateTime(), status: Type.String() })), urgentTodos: Type.Array(Type.Object({ id: Type.String(), title: Type.String(), priority: Type.String(), dueDate: Type.Union([DateTime(), Type.Null()]) })), shoppingItems: Type.Array(Type.Object({ id: Type.String(), name: Type.String(), category: Type.String() })) }) }) } },
   }, async (request) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -85,6 +86,7 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
   fastify.get('/expense-trends', {
     schema: { response: { 200: Type.Object({ success: Type.Boolean(), data: Type.Array(Type.Object({ month: Type.String(), total: Type.Number(), count: Type.Integer() })) }) } },
   }, async (request) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const now = new Date();
     const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
@@ -115,4 +117,4 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
 
     return { success: true, data: result };
   });
-}
+};

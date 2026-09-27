@@ -106,9 +106,33 @@ model User {
   events        Event[]       @relation("UserEvents")
   addedItems    ShoppingItem[] @relation("AddedShoppingItems")
   sentInvites   Invitation[]  @relation("SentInvitations")
+  refreshTokens RefreshToken[]
 
   @@index([familyId])
   @@index([email])
+}
+
+/// Una sesion de larga duracion. Se guarda el hash SHA-256 del refresh
+/// token, nunca el token plano: si la base se filtra, no se puede usar.
+///
+/// Rotacion: cada /refresh emite un token nuevo y marca este como
+/// revocado, apuntando al que lo reemplazo. Si llega un token que ya
+/// esta revocado es senal de reuso (robo): se revocan todas las
+/// sesiones del usuario.
+model RefreshToken {
+  id           String        @id @default(cuid())
+  tokenHash    String        @unique
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedById String?       @unique
+  replacedBy   RefreshToken? @relation("RefreshTokenRotation", fields: [replacedById], references: [id])
+  replaces     RefreshToken? @relation("RefreshTokenRotation")
+  createdAt    DateTime      @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Expense {

@@ -1,0 +1,290 @@
+prisma/seed.ts(46,37): error TS7006: Parameter 'm' implicitly has an 'any' type.
+prisma/seed.ts(47,38): error TS7006: Parameter 'm' implicitly has an 'any' type.
+src/plugins/auth.ts(69,21): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/plugins/auth.ts(74,21): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/plugins/auth.ts(84,21): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/plugins/auth.ts(92,23): error TS2339: Property 'role' does not exist on type 'string | object | Buffer<ArrayBufferLike>'.
+  Property 'role' does not exist on type 'string'.
+src/plugins/auth.ts(93,21): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/plugins/family.ts(12,33): error TS2339: Property 'familyId' does not exist on type 'string | object | Buffer<ArrayBufferLike>'.
+  Property 'familyId' does not exist on type 'string'.
+src/plugins/family.ts(17,21): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/plugins/family.ts(28,34): error TS7031: Binding element 'args' implicitly has an 'any' type.
+src/plugins/family.ts(28,40): error TS7031: Binding element 'query' implicitly has an 'any' type.
+src/routes/auth.ts(45,13): error TS2339: Property 'email' does not exist on type 'unknown'.
+src/routes/auth.ts(45,20): error TS2339: Property 'password' does not exist on type 'unknown'.
+src/routes/auth.ts(49,21): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/auth.ts(97,13): error TS2339: Property 'email' does not exist on type 'unknown'.
+src/routes/auth.ts(97,20): error TS2339: Property 'password' does not exist on type 'unknown'.
+src/routes/auth.ts(97,30): error TS2339: Property 'name' does not exist on type 'unknown'.
+src/routes/auth.ts(97,36): error TS2339: Property 'familyName' does not exist on type 'unknown'.
+src/routes/auth.ts(101,21): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/auth.ts(168,21): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/auth.ts(173,21): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/auth.ts(182,21): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/bills.ts(66,45): error TS7006: Parameter 'request' implicitly has an 'any' type.
+src/routes/bills.ts(66,45): error TS2345: Argument of type '(request: any) => any' is not assignable to parameter of type 'string'.
+src/routes/bills.ts(72,13): error TS2339: Property 'page' does not exist on type 'unknown'.
+src/routes/bills.ts(72,23): error TS2339: Property 'limit' does not exist on type 'unknown'.
+src/routes/bills.ts(72,35): error TS2339: Property 'sortBy' does not exist on type 'unknown'.
+src/routes/bills.ts(72,55): error TS2339: Property 'sortOrder' does not exist on type 'unknown'.
+src/routes/bills.ts(72,77): error TS2700: Rest types may only be created from object types.
+src/routes/bills.ts(79,30): error TS18046: 'where.dueDate' is of type 'unknown'.
+src/routes/bills.ts(80,28): error TS18046: 'where.dueDate' is of type 'unknown'.
+src/routes/bills.ts(96,25): error TS7006: Parameter 'b' implicitly has an 'any' type.
+src/routes/bills.ts(106,68): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/bills.ts(107,30): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/bills.ts(115,59): error TS2698: Spread types may only be created from object types.
+src/routes/bills.ts(115,84): error TS18046: 'request.body' is of type 'unknown'.
+src/routes/bills.ts(124,72): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/bills.ts(125,34): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/bills.ts(128,20): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/bills.ts(129,15): error TS2698: Spread types may only be created from object types.
+src/routes/bills.ts(129,40): error TS18046: 'request.body' is of type 'unknown'.
+src/routes/bills.ts(133,9): error TS18046: 'request.body' is of type 'unknown'.
+src/routes/bills.ts(143,72): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/bills.ts(144,34): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/bills.ts(146,51): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/bills.ts(147,78): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/bills.ts(156,20): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/bills.ts(171,13): error TS2339: Property 'days' does not exist on type 'unknown'.
+src/routes/bills.ts(184,45): error TS7006: Parameter 'b' implicitly has an 'any' type.
+src/routes/dashboard.ts(6,45): error TS7006: Parameter 'request' implicitly has an 'any' type.
+src/routes/dashboard.ts(6,45): error TS2345: Argument of type '(request: any) => any' is not assignable to parameter of type 'string'.
+src/routes/dashboard.ts(76,44): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/routes/dashboard.ts(77,42): error TS7006: Parameter 'b' implicitly has an 'any' type.
+src/routes/events.ts(66,45): error TS7006: Parameter 'request' implicitly has an 'any' type.
+src/routes/events.ts(66,45): error TS2345: Argument of type '(request: any) => any' is not assignable to parameter of type 'string'.
+src/routes/events.ts(72,13): error TS2339: Property 'page' does not exist on type 'unknown'.
+src/routes/events.ts(72,23): error TS2339: Property 'limit' does not exist on type 'unknown'.
+src/routes/events.ts(72,38): error TS2700: Rest types may only be created from object types.
+src/routes/events.ts(77,30): error TS18046: 'where.startDate' is of type 'unknown'.
+src/routes/events.ts(78,28): error TS18046: 'where.startDate' is of type 'unknown'.
+src/routes/events.ts(106,20): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/events.ts(109,31): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/events.ts(117,13): error TS2339: Property 'attendeeIds' does not exist on type 'unknown'.
+src/routes/events.ts(117,29): error TS2700: Rest types may only be created from object types.
+src/routes/events.ts(123,61): error TS7006: Parameter 'id' implicitly has an 'any' type.
+src/routes/events.ts(135,73): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/events.ts(136,34): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/events.ts(138,13): error TS2339: Property 'attendeeIds' does not exist on type 'unknown'.
+src/routes/events.ts(138,29): error TS2700: Rest types may only be created from object types.
+src/routes/events.ts(140,20): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/events.ts(145,57): error TS7006: Parameter 'id' implicitly has an 'any' type.
+src/routes/events.ts(158,73): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/events.ts(159,34): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/events.ts(161,52): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/events.ts(162,79): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/events.ts(176,13): error TS2339: Property 'start' does not exist on type 'unknown'.
+src/routes/events.ts(176,20): error TS2339: Property 'end' does not exist on type 'unknown'.
+src/routes/expenses.ts(67,45): error TS7006: Parameter 'request' implicitly has an 'any' type.
+src/routes/expenses.ts(67,45): error TS2345: Argument of type '(request: any) => any' is not assignable to parameter of type 'string'.
+src/routes/expenses.ts(73,13): error TS2339: Property 'page' does not exist on type 'unknown'.
+src/routes/expenses.ts(73,23): error TS2339: Property 'limit' does not exist on type 'unknown'.
+src/routes/expenses.ts(73,35): error TS2339: Property 'sortBy' does not exist on type 'unknown'.
+src/routes/expenses.ts(73,52): error TS2339: Property 'sortOrder' does not exist on type 'unknown'.
+src/routes/expenses.ts(73,75): error TS2700: Rest types may only be created from object types.
+src/routes/expenses.ts(79,30): error TS18046: 'where.date' is of type 'unknown'.
+src/routes/expenses.ts(80,28): error TS18046: 'where.date' is of type 'unknown'.
+src/routes/expenses.ts(84,44): error TS18046: 'where.amount' is of type 'unknown'.
+src/routes/expenses.ts(85,44): error TS18046: 'where.amount' is of type 'unknown'.
+src/routes/expenses.ts(103,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/routes/expenses.ts(114,20): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/expenses.ts(117,33): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/expenses.ts(126,15): error TS2698: Spread types may only be created from object types.
+src/routes/expenses.ts(126,40): error TS18046: 'request.body' is of type 'unknown'.
+src/routes/expenses.ts(126,83): error TS2339: Property 'id' does not exist on type 'string | object | Buffer<ArrayBufferLike>'.
+  Property 'id' does not exist on type 'string'.
+src/routes/expenses.ts(140,75): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/expenses.ts(141,34): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/expenses.ts(144,20): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/expenses.ts(145,15): error TS2698: Spread types may only be created from object types.
+src/routes/expenses.ts(145,40): error TS18046: 'request.body' is of type 'unknown'.
+src/routes/expenses.ts(157,75): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/expenses.ts(158,34): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/expenses.ts(160,54): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/expenses.ts(161,81): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/expenses.ts(183,13): error TS2339: Property 'startDate' does not exist on type 'unknown'.
+src/routes/expenses.ts(183,24): error TS2339: Property 'endDate' does not exist on type 'unknown'.
+src/routes/expenses.ts(187,22): error TS18046: 'where.date' is of type 'unknown'.
+src/routes/expenses.ts(188,20): error TS18046: 'where.date' is of type 'unknown'.
+src/routes/expenses.ts(196,36): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+src/routes/expenses.ts(196,41): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/routes/family.ts(40,13): error TS2339: Property 'name' does not exist on type 'unknown'.
+src/routes/index.ts(8,32): error TS2307: Cannot find module './shopping.js' or its corresponding type declarations.
+src/routes/invitations.ts(4,10): error TS2724: '"crypto"' has no exported member named 'crypto'. Did you mean 'scrypt'?
+src/routes/invitations.ts(31,13): error TS2339: Property 'email' does not exist on type 'unknown'.
+src/routes/invitations.ts(31,20): error TS2339: Property 'role' does not exist on type 'unknown'.
+src/routes/invitations.ts(38,21): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/invitations.ts(46,21): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/invitations.ts(57,36): error TS2339: Property 'id' does not exist on type 'string | object | Buffer<ArrayBufferLike>'.
+  Property 'id' does not exist on type 'string'.
+src/routes/invitations.ts(88,13): error TS2339: Property 'token' does not exist on type 'unknown'.
+src/routes/invitations.ts(88,20): error TS2339: Property 'password' does not exist on type 'unknown'.
+src/routes/invitations.ts(88,30): error TS2339: Property 'name' does not exist on type 'unknown'.
+src/routes/invitations.ts(95,36): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/invitations.ts(96,46): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/invitations.ts(97,58): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/invitations.ts(140,51): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/todos.ts(65,45): error TS7006: Parameter 'request' implicitly has an 'any' type.
+src/routes/todos.ts(65,45): error TS2345: Argument of type '(request: any) => any' is not assignable to parameter of type 'string'.
+src/routes/todos.ts(71,13): error TS2339: Property 'page' does not exist on type 'unknown'.
+src/routes/todos.ts(71,23): error TS2339: Property 'limit' does not exist on type 'unknown'.
+src/routes/todos.ts(71,35): error TS2339: Property 'sortBy' does not exist on type 'unknown'.
+src/routes/todos.ts(71,55): error TS2339: Property 'sortOrder' does not exist on type 'unknown'.
+src/routes/todos.ts(71,77): error TS2700: Rest types may only be created from object types.
+src/routes/todos.ts(79,30): error TS18046: 'where.dueDate' is of type 'unknown'.
+src/routes/todos.ts(80,29): error TS18046: 'where.dueDate' is of type 'unknown'.
+src/routes/todos.ts(105,20): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/todos.ts(108,30): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/todos.ts(117,15): error TS2698: Spread types may only be created from object types.
+src/routes/todos.ts(117,41): error TS18046: 'request.body' is of type 'unknown'.
+src/routes/todos.ts(117,73): error TS18046: 'request.body' is of type 'unknown'.
+src/routes/todos.ts(128,72): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/todos.ts(129,34): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/todos.ts(132,20): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/todos.ts(133,15): error TS2698: Spread types may only be created from object types.
+src/routes/todos.ts(133,41): error TS18046: 'request.body' is of type 'unknown'.
+src/routes/todos.ts(133,73): error TS18046: 'request.body' is of type 'unknown'.
+src/routes/todos.ts(138,9): error TS18046: 'request.body' is of type 'unknown'.
+src/routes/todos.ts(138,50): error TS18046: 'request.body' is of type 'unknown'.
+src/routes/todos.ts(148,72): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/todos.ts(149,34): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/todos.ts(151,51): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/todos.ts(152,78): error TS18046: 'request.params' is of type 'unknown'.
+src/routes/todos.ts(169,31): error TS7006: Parameter 't' implicitly has an 'any' type.
+src/routes/todos.ts(170,34): error TS7006: Parameter 't' implicitly has an 'any' type.
+src/routes/todos.ts(171,28): error TS7006: Parameter 't' implicitly has an 'any' type.
+src/routes/users.ts(35,34): error TS2339: Property 'id' does not exist on type 'string | object | Buffer<ArrayBufferLike>'.
+  Property 'id' does not exist on type 'string'.
+src/routes/users.ts(46,34): error TS2339: Property 'id' does not exist on type 'string | object | Buffer<ArrayBufferLike>'.
+  Property 'id' does not exist on type 'string'.
+src/routes/users.ts(63,13): error TS2339: Property 'currentPassword' does not exist on type 'unknown'.
+src/routes/users.ts(63,30): error TS2339: Property 'newPassword' does not exist on type 'unknown'.
+src/routes/users.ts(64,76): error TS2339: Property 'id' does not exist on type 'string | object | Buffer<ArrayBufferLike>'.
+  Property 'id' does not exist on type 'string'.
+src/routes/users.ts(67,21): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/users.ts(112,13): error TS2339: Property 'page' does not exist on type 'unknown'.
+src/routes/users.ts(112,23): error TS2339: Property 'limit' does not exist on type 'unknown'.
+src/routes/users.ts(149,13): error TS2339: Property 'id' does not exist on type 'unknown'.
+src/routes/users.ts(150,13): error TS2339: Property 'role' does not exist on type 'unknown'.
+src/routes/users.ts(152,30): error TS2339: Property 'id' does not exist on type 'string | object | Buffer<ArrayBufferLike>'.
+  Property 'id' does not exist on type 'string'.
+src/routes/users.ts(153,21): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/users.ts(173,13): error TS2339: Property 'id' does not exist on type 'unknown'.
+src/routes/users.ts(175,30): error TS2339: Property 'id' does not exist on type 'string | object | Buffer<ArrayBufferLike>'.
+  Property 'id' does not exist on type 'string'.
+src/routes/users.ts(176,21): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+../../packages/shared/src/index.ts(76,25): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(77,28): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(78,31): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(79,27): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(80,34): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(81,38): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(82,37): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(83,34): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(84,31): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(85,27): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(86,31): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(89,35): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(93,35): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(98,31): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(105,28): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(107,13): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(110,33): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(112,11): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(113,13): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(114,10): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(118,36): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(120,13): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(123,16): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(124,15): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(129,37): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(130,13): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(133,14): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(134,14): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(135,16): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(136,9): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(137,10): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(138,11): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(139,14): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(143,33): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(147,13): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(148,11): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(149,15): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(150,12): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(155,34): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(156,13): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(157,11): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(160,9): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(161,10): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(162,11): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(163,14): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(167,33): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(170,11): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(171,13): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(178,34): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(179,11): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(180,13): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(184,9): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(185,10): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(186,11): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(187,14): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(191,41): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(194,9): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(195,13): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(199,11): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(202,38): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(203,13): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(204,11): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(205,9): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(206,10): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(207,11): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(208,14): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(212,34): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(217,11): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(218,15): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(220,16): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(225,35): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(229,9): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(230,10): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(234,33): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(236,9): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(239,39): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(240,10): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(246,33): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(247,9): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(248,10): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(251,32): error TS2503: Cannot find namespace 'z'.
+../../packages/shared/src/index.ts(253,51): error TS2503: Cannot find namespace 'z'.
+../../packages/shared/src/index.ts(254,3): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(255,11): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(256,11): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(257,13): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(258,14): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(259,14): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(260,19): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(261,16): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(262,16): error TS2304: Cannot find name 'z'.
+../../packages/shared/src/index.ts(270,33): error TS2503: Cannot find namespace 'z'.
+../../packages/shared/src/index.ts(271,33): error TS2503: Cannot find namespace 'z'.
+../../packages/shared/src/index.ts(273,29): error TS2503: Cannot find namespace 'z'.
+../../packages/shared/src/index.ts(274,26): error TS2503: Cannot find namespace 'z'.
+../../packages/shared/src/index.ts(275,31): error TS2503: Cannot find namespace 'z'.
+../../packages/shared/src/index.ts(277,34): error TS2503: Cannot find namespace 'z'.
+../../packages/shared/src/index.ts(278,34): error TS2503: Cannot find namespace 'z'.
+../../packages/shared/src/index.ts(279,30): error TS2503: Cannot find namespace 'z'.
+../../packages/shared/src/index.ts(281,31): error TS2503: Cannot find namespace 'z'.
+../../packages/shared/src/index.ts(282,31): error TS2503: Cannot find namespace 'z'.
+../../packages/shared/src/index.ts(283,27): error TS2503: Cannot find namespace 'z'.
+../../packages/shared/src/index.ts(285,31): error TS2503: Cannot find namespace 'z'.
+../../packages/shared/src/index.ts(286,31): error TS2503: Cannot find namespace 'z'.
+../../packages/shared/src/index.ts(287,27): error TS2503: Cannot find namespace 'z'.
+../../packages/shared/src/index.ts(289,39): error TS2503: Cannot find namespace 'z'.
+../../packages/shared/src/index.ts(290,39): error TS2503: Cannot find namespace 'z'.
+../../packages/shared/src/index.ts(291,31): error TS2503: Cannot find namespace 'z'.
+../../packages/shared/src/index.ts(293,32): error TS2503: Cannot find namespace 'z'.
+../../packages/shared/src/index.ts(294,32): error TS2503: Cannot find namespace 'z'.
+../../packages/shared/src/index.ts(295,28): error TS2503: Cannot find namespace 'z'.
+../../packages/shared/src/index.ts(297,31): error TS2503: Cannot find namespace 'z'.
+../../packages/shared/src/index.ts(298,37): error TS2503: Cannot find namespace 'z'.

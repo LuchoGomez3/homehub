@@ -1,8 +1,19 @@
-import { FastifyInstance } from 'fastify';
+import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { Type } from '@sinclair/typebox';
 import { prisma } from '../server.js';
-import { z } from 'zod';
-import { loginSchema, registerSchema } from '@homehub/shared';
+import {
+  REFRESH_COOKIE,
+  clearSessionCookies,
+  hashToken,
+  issueSession,
+  refreshJwt,
+} from '../lib/tokens.js';
+import { sessionRoom, userRoom } from '../lib/rooms.js';
+import type { TokenPayload } from '../types/fastify.js';
+
+// ---------------------------------------------------------------------------
+// Esquemas
+// ---------------------------------------------------------------------------
 
 const loginBody = Type.Object({
   email: Type.String({ format: 'email' }),
@@ -16,240 +27,193 @@ const registerBody = Type.Object({
   familyName: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })),
 });
 
-const tokenResponse = Type.Object({
+const userSchema = Type.Object({
+  id: Type.String(),
+  email: Type.String(),
+  name: Type.String(),
+  role: Type.String(),
+  familyId: Type.String(),
+  avatar: Type.Union([Type.String(), Type.Null()]),
+  language: Type.String(),
+  theme: Type.String(),
+});
+
+// Los tokens NO forman parte de la respuesta: viajan solo en cookies
+// httpOnly (decisions/0001). Si no estan en el JSON, el cliente no puede
+// guardarlos en localStorage aunque quiera.
+const sessionResponse = Type.Object({
+  success: Type.Boolean(),
+  data: Type.Object({ user: userSchema }),
+});
+
+const meResponse = Type.Object({
   success: Type.Boolean(),
   data: Type.Object({
-    user: Type.Object({
-      id: Type.String(),
-      email: Type.String(),
-      name: Type.String(),
-      role: Type.String(),
-      familyId: Type.String(),
-      avatar: Type.Union([Type.String(), Type.Null()]),
-      language: Type.String(),
-      theme: Type.String(),
-    }),
-    accessToken: Type.String(),
-    refreshToken: Type.String(),
+    user: userSchema,
+    family: Type.Object({ id: Type.String(), name: Type.String() }),
   }),
 });
 
-export async function authRoutes(fastify: FastifyInstance) {
-  // Login
-  fastify.post('/login', {
-    schema: {
-      body: loginBody,
-      response: { 200: tokenResponse },
+const messageResponse = Type.Object({
+  success: Type.Boolean(),
+  data: Type.Object({ message: Type.String() }),
+});
+
+const userSelect = {
+  id: true,
+  email: true,
+  name: true,
+  role: true,
+  familyId: true,
+  avatar: true,
+  language: true,
+  theme: true,
+} as const;
+
+// ---------------------------------------------------------------------------
+// Rutas
+// ---------------------------------------------------------------------------
+
+export const authRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
+  fastify.post(
+    '/login',
+    { schema: { body: loginBody, response: { 200: sessionResponse } } },
+    async (request, reply) => {
+      const { email, password } = request.body;
+      const user = await prisma.user.findUnique({
+        where: { email },
+        select: { ...userSelect, passwordHash: true },
+      });
+
+      // Mismo mensaje para "no existe" y "clave incorrecta": no se revela
+      // que emails estan registrados.
+      if (!user || !(await fastify.verifyPassword(password, user.passwordHash))) {
+        throw fastify.httpErrors.unauthorized('Invalid credentials');
+      }
+
+      const { passwordHash: _omit, ...publicUser } = user;
+      await issueSession(fastify, reply, publicUser);
+      return { success: true, data: { user: publicUser } };
     },
-  }, async (request, reply) => {
-    const { email, password } = request.body;
-    const user = await prisma.user.findUnique({ where: { email } });
+  );
 
-    if (!user || !(await fastify.verifyPassword(password, user.passwordHash))) {
-      throw fastify.httpErrors.unauthorized('Invalid credentials');
-    }
+  fastify.post(
+    '/register',
+    { schema: { body: registerBody, response: { 201: sessionResponse } } },
+    async (request, reply) => {
+      const { email, password, name, familyName } = request.body;
 
-    const accessToken = fastify.generateAccessToken(user);
-    const refreshToken = fastify.generateRefreshToken(user);
+      const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+      if (existing) {
+        throw fastify.httpErrors.conflict('Email already registered');
+      }
 
-    reply.setCookie('accessToken', accessToken.replace('Bearer ', ''), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 15 * 60,
-      path: '/',
-    });
+      const passwordHash = await fastify.hashPassword(password);
+      const family = await prisma.family.create({
+        data: {
+          name: familyName ?? `${name}'s Family`,
+          members: { create: { email, passwordHash, name, role: 'ADMIN' } },
+        },
+        include: { members: { select: userSelect } },
+      });
 
-    reply.setCookie('refreshToken', refreshToken.replace('Bearer ', ''), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60,
-      path: '/',
-    });
+      const user = family.members[0];
+      await issueSession(fastify, reply, user);
+      return reply.status(201).send({ success: true, data: { user } });
+    },
+  );
 
+  fastify.post(
+    '/refresh',
+    { schema: { response: { 200: sessionResponse } } },
+    async (request, reply) => {
+      const raw = request.cookies?.[REFRESH_COOKIE];
+      if (!raw) {
+        throw fastify.httpErrors.unauthorized('Refresh token required');
+      }
+
+      // 1. Firma y vencimiento del JWT.
+      let payload: TokenPayload;
+      try {
+        payload = refreshJwt(fastify).verify<TokenPayload>(raw);
+      } catch {
+        clearSessionCookies(reply);
+        throw fastify.httpErrors.unauthorized('Invalid refresh token');
+      }
+      if (payload.type !== 'refresh') {
+        clearSessionCookies(reply);
+        throw fastify.httpErrors.unauthorized('Wrong token type');
+      }
+
+      // 2. Estado del lado del servidor.
+      const stored = await prisma.refreshToken.findUnique({
+        where: { tokenHash: hashToken(raw) },
+        select: { id: true, userId: true, revokedAt: true, expiresAt: true },
+      });
+
+      if (!stored) {
+        clearSessionCookies(reply);
+        throw fastify.httpErrors.unauthorized('Unknown refresh token');
+      }
+
+      if (stored.revokedAt) {
+        // Un token que ya roto vuelve a aparecer: alguien tiene una copia.
+        // Se cierran todas las sesiones del usuario, no solo esta.
+        await prisma.refreshToken.updateMany({
+          where: { userId: stored.userId, revokedAt: null },
+          data: { revokedAt: new Date() },
+        });
+        fastify.io.in(userRoom(stored.userId)).disconnectSockets(true);
+        clearSessionCookies(reply);
+        throw fastify.httpErrors.unauthorized('Refresh token reuse detected');
+      }
+
+      if (stored.expiresAt < new Date()) {
+        clearSessionCookies(reply);
+        throw fastify.httpErrors.unauthorized('Refresh token expired');
+      }
+
+      const user = await prisma.user.findUnique({ where: { id: stored.userId }, select: userSelect });
+      if (!user || user.familyId !== payload.familyId) {
+        clearSessionCookies(reply);
+        throw fastify.httpErrors.unauthorized('User not found');
+      }
+
+      // 3. Rotar: el nuevo reemplaza al viejo, que queda revocado.
+      await issueSession(fastify, reply, user, { id: stored.id });
+      return { success: true, data: { user } };
+    },
+  );
+
+  fastify.post(
+    '/logout',
+    { schema: { response: { 200: messageResponse } } },
+    async (request, reply) => {
+      const raw = request.cookies?.[REFRESH_COOKIE];
+      if (raw) {
+        // Revocar por hash, sin verificar firma: si el token es basura no
+        // matchea nada y no pasa nada. Logout es idempotente.
+        const session = await prisma.refreshToken.findUnique({
+          where: { tokenHash: hashToken(raw) },
+          select: { id: true, revokedAt: true },
+        });
+        if (session && !session.revokedAt) {
+          await prisma.refreshToken.update({
+            where: { id: session.id },
+            data: { revokedAt: new Date() },
+          });
+        }
+        if (session) fastify.io.in(sessionRoom(session.id)).disconnectSockets(true);
+      }
+      clearSessionCookies(reply);
+      return { success: true, data: { message: 'Logged out successfully' } };
+    },
+  );
+
+  fastify.get('/me', { schema: { response: { 200: meResponse } } }, async (request) => {
     return {
       success: true,
-      data: {
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          familyId: user.familyId,
-          avatar: user.avatar,
-          language: user.language,
-          theme: user.theme,
-        },
-        accessToken,
-        refreshToken,
-      },
+      data: { user: request.user, family: request.family! },
     };
   });
-
-  // Register
-  fastify.post('/register', {
-    schema: {
-      body: registerBody,
-      response: { 201: tokenResponse },
-    },
-  }, async (request, reply) => {
-    const { email, password, name, familyName } = request.body;
-
-    const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
-      throw fastify.httpErrors.conflict('Email already registered');
-    }
-
-    const passwordHash = await fastify.hashPassword(password);
-
-    const family = await prisma.family.create({
-      data: {
-        name: familyName || `${name}'s Family`,
-        members: {
-          create: {
-            email,
-            passwordHash,
-            name,
-            role: 'ADMIN',
-          },
-        },
-      },
-      include: { members: true },
-    });
-
-    const user = family.members[0];
-    const accessToken = fastify.generateAccessToken(user);
-    const refreshToken = fastify.generateRefreshToken(user);
-
-    reply.setCookie('accessToken', accessToken.replace('Bearer ', ''), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 15 * 60,
-      path: '/',
-    });
-
-    reply.setCookie('refreshToken', refreshToken.replace('Bearer ', ''), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60,
-      path: '/',
-    });
-
-    return reply.status(201).send({
-      success: true,
-      data: {
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          familyId: user.familyId,
-          avatar: user.avatar,
-          language: user.language,
-          theme: user.theme,
-        },
-        accessToken,
-        refreshToken,
-      },
-    });
-  });
-
-  // Refresh token
-  fastify.post('/refresh', {
-    schema: {
-      response: { 200: tokenResponse },
-    },
-  }, async (request, reply) => {
-    const refreshToken = request.cookies?.refreshToken || request.headers.authorization?.replace('Bearer ', '');
-    if (!refreshToken) {
-      throw fastify.httpErrors.unauthorized('Refresh token required');
-    }
-
-    const parsed = fastify.parseToken(refreshToken);
-    if (!parsed || parsed.type !== 'refresh') {
-      throw fastify.httpErrors.unauthorized('Invalid refresh token');
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: parsed.sub },
-      select: { id: true, email: true, name: true, role: true, familyId: true, avatar: true, language: true, theme: true },
-    });
-
-    if (!user || user.familyId !== parsed.familyId) {
-      throw fastify.httpErrors.unauthorized('User not found');
-    }
-
-    const accessToken = fastify.generateAccessToken(user);
-    const newRefreshToken = fastify.generateRefreshToken(user);
-
-    reply.setCookie('accessToken', accessToken.replace('Bearer ', ''), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 15 * 60,
-      path: '/',
-    });
-
-    reply.setCookie('refreshToken', newRefreshToken.replace('Bearer ', ''), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60,
-      path: '/',
-    });
-
-    return {
-      success: true,
-      data: {
-        user,
-        accessToken,
-        refreshToken: newRefreshToken,
-      },
-    };
-  });
-
-  // Logout
-  fastify.post('/logout', async (request, reply) => {
-    reply.clearCookie('accessToken', { path: '/' });
-    reply.clearCookie('refreshToken', { path: '/' });
-    return { success: true, data: { message: 'Logged out successfully' } };
-  });
-
-  // Me
-  fastify.get('/me', {
-    schema: {
-      response: {
-        200: Type.Object({
-          success: Type.Boolean(),
-          data: Type.Object({
-            user: Type.Object({
-              id: Type.String(),
-              email: Type.String(),
-              name: Type.String(),
-              role: Type.String(),
-              familyId: Type.String(),
-              avatar: Type.Union([Type.String(), Type.Null()]),
-              language: Type.String(),
-              theme: Type.String(),
-            }),
-            family: Type.Object({
-              id: Type.String(),
-              name: Type.String(),
-            }),
-          }),
-        }),
-      },
-    },
-  }, async (request) => {
-    return {
-      success: true,
-      data: {
-        user: request.user!,
-        family: request.family!,
-      },
-    };
-  });
-}
+};

@@ -1,6 +1,8 @@
-import { FastifyInstance } from 'fastify';
+import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { Type } from '@sinclair/typebox';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../server.js';
+import { DateTime } from '../lib/schemas.js';
 import { createBillSchema, updateBillSchema, billFiltersSchema, BillCategory, BillStatus, Recurrence } from '@homehub/shared';
 
 const createBillBody = Type.Object({
@@ -38,13 +40,13 @@ const billResponse = Type.Object({
   id: Type.String(),
   name: Type.String(),
   amount: Type.Number(),
-  dueDate: Type.String(),
+  dueDate: DateTime(),
   category: Type.String(),
   status: Type.String(),
   recurrence: Type.String(),
   fileUrl: Type.Union([Type.String(), Type.Null()]),
-  createdAt: Type.String(),
-  updatedAt: Type.String(),
+  createdAt: DateTime(),
+  updatedAt: DateTime(),
 });
 
 const paginatedBillResponse = Type.Object({
@@ -62,22 +64,23 @@ const paginatedBillResponse = Type.Object({
   }),
 });
 
-export async function billRoutes(fastify: FastifyInstance) {
-  const familyPrisma = fastify.familyPrisma(request => request.family!.id);
+export const billRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
 
   // List bills
   fastify.get('/', {
     schema: { querystring: billQuery, response: { 200: paginatedBillResponse } },
   }, async (request) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const { page = 1, limit = 20, sortBy = 'dueDate', sortOrder = 'asc', ...filters } = request.query;
-    const where: Record<string, unknown> = { familyId: request.family!.id };
+    const where: Prisma.BillWhereInput = { familyId: request.family!.id };
 
     if (filters.category) where.category = filters.category;
     if (filters.status) where.status = filters.status;
     if (filters.startDate || filters.endDate) {
-      where.dueDate = {};
-      if (filters.startDate) where.dueDate.gte = new Date(filters.startDate);
-      if (filters.endDate) where.dueDate.lte = new Date(filters.endDate);
+      const dueDateFilter: Prisma.DateTimeFilter = {};
+      if (filters.startDate) dueDateFilter.gte = new Date(filters.startDate);
+      if (filters.endDate) dueDateFilter.lte = new Date(filters.endDate);
+      where.dueDate = dueDateFilter;
     }
 
     const [bills, total] = await Promise.all([
@@ -103,6 +106,7 @@ export async function billRoutes(fastify: FastifyInstance) {
   fastify.get('/:id', {
     schema: { params: Type.Object({ id: Type.String() }), response: { 200: Type.Object({ success: Type.Boolean(), data: billResponse }) } },
   }, async (request, reply) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const bill = await familyPrisma.bill.findUnique({ where: { id: request.params.id } });
     if (!bill) throw fastify.httpErrors.notFound('Bill not found');
     return { success: true, data: { ...bill, amount: Number(bill.amount) } };
@@ -112,7 +116,8 @@ export async function billRoutes(fastify: FastifyInstance) {
   fastify.post('/', {
     schema: { body: createBillBody, response: { 201: Type.Object({ success: Type.Boolean(), data: billResponse }) } },
   }, async (request, reply) => {
-    const bill = await familyPrisma.bill.create({ data: { ...request.body, amount: request.body.amount } });
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
+    const bill = await familyPrisma.bill.create({ data: { ...request.body, amount: request.body.amount, familyId: request.family!.id } });
     fastify.io.to(`family:${request.family!.id}`).emit('bill:created', { ...bill, amount: Number(bill.amount) });
     return reply.status(201).send({ success: true, data: { ...bill, amount: Number(bill.amount) } });
   });
@@ -121,6 +126,7 @@ export async function billRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id', {
     schema: { params: Type.Object({ id: Type.String() }), body: updateBillBody, response: { 200: Type.Object({ success: Type.Boolean(), data: billResponse }) } },
   }, async (request, reply) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const existing = await familyPrisma.bill.findUnique({ where: { id: request.params.id } });
     if (!existing) throw fastify.httpErrors.notFound('Bill not found');
 
@@ -140,6 +146,7 @@ export async function billRoutes(fastify: FastifyInstance) {
   fastify.delete('/:id', {
     schema: { params: Type.Object({ id: Type.String() }), response: { 200: Type.Object({ success: Type.Boolean(), data: Type.Object({ message: Type.String() }) }) } },
   }, async (request, reply) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const existing = await familyPrisma.bill.findUnique({ where: { id: request.params.id } });
     if (!existing) throw fastify.httpErrors.notFound('Bill not found');
 
@@ -152,6 +159,7 @@ export async function billRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/pay', {
     schema: { params: Type.Object({ id: Type.String() }), response: { 200: Type.Object({ success: Type.Boolean(), data: billResponse }) } },
   }, async (request, reply) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const bill = await familyPrisma.bill.update({
       where: { id: request.params.id, familyId: request.family!.id },
       data: { status: 'PAID' },
@@ -168,6 +176,7 @@ export async function billRoutes(fastify: FastifyInstance) {
       response: { 200: Type.Object({ success: Type.Boolean(), data: Type.Array(billResponse) }) },
     },
   }, async (request) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const { days = 30 } = request.query;
     const now = new Date();
     const future = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
@@ -183,4 +192,4 @@ export async function billRoutes(fastify: FastifyInstance) {
 
     return { success: true, data: bills.map(b => ({ ...b, amount: Number(b.amount) })) };
   });
-}
+};

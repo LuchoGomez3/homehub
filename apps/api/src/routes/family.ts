@@ -1,6 +1,7 @@
-import { FastifyInstance } from 'fastify';
+import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { Type } from '@sinclair/typebox';
 import { prisma } from '../server.js';
+import { DateTime } from '../lib/schemas.js';
 import { createFamilySchema, updateFamilySchema } from '@homehub/shared';
 
 const createFamilyBody = Type.Object({
@@ -16,12 +17,12 @@ const familyResponse = Type.Object({
   data: Type.Object({
     id: Type.String(),
     name: Type.String(),
-    createdAt: Type.String(),
-    updatedAt: Type.String(),
+    createdAt: DateTime(),
+    updatedAt: DateTime(),
   }),
 });
 
-export async function familyRoutes(fastify: FastifyInstance) {
+export const familyRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   // Get current family
   fastify.get('/', {
     schema: { response: { 200: familyResponse } },
@@ -70,7 +71,7 @@ export async function familyRoutes(fastify: FastifyInstance) {
             avatar: Type.Union([Type.String(), Type.Null()]),
             language: Type.String(),
             theme: Type.String(),
-            createdAt: Type.String(),
+            createdAt: DateTime(),
           })),
         }),
       },
@@ -83,4 +84,4 @@ export async function familyRoutes(fastify: FastifyInstance) {
     });
     return { success: true, data: members };
   });
-}
+};

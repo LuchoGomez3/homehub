@@ -1,9 +1,10 @@
-import { FastifyInstance } from 'fastify';
+import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { Type } from '@sinclair/typebox';
 import { prisma } from '../server.js';
-import { crypto } from 'crypto';
+import { DateTime } from '../lib/schemas.js';
+import { randomBytes } from 'node:crypto';
 import { inviteUserSchema, acceptInvitationSchema, UserRole } from '@homehub/shared';
-import { env } from '../config/env.js';
+import { issueSession } from '../lib/tokens.js';
 
 const inviteBody = Type.Object({
   email: Type.String({ format: 'email' }),
@@ -17,12 +18,12 @@ const invitationResponse = Type.Object({
   familyId: Type.String(),
   invitedById: Type.String(),
   token: Type.String(),
-  expiresAt: Type.String(),
-  acceptedAt: Type.Union([Type.String(), Type.Null()]),
-  createdAt: Type.String(),
+  expiresAt: DateTime(),
+  acceptedAt: Type.Union([DateTime(), Type.Null()]),
+  createdAt: DateTime(),
 });
 
-export async function invitationRoutes(fastify: FastifyInstance) {
+export const invitationRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   // Invite user (admin only)
   fastify.post('/', {
     schema: { body: inviteBody, response: { 201: Type.Object({ success: Type.Boolean(), data: invitationResponse }) } },
@@ -46,7 +47,7 @@ export async function invitationRoutes(fastify: FastifyInstance) {
       throw fastify.httpErrors.conflict('Invitation already pending');
     }
 
-    const token = crypto.randomBytes(32).toString('hex');
+    const token = randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
     const invitation = await prisma.invitation.create({
@@ -82,35 +83,38 @@ export async function invitationRoutes(fastify: FastifyInstance) {
   fastify.post('/accept', {
     schema: {
       body: Type.Object({ token: Type.String(), password: Type.String({ minLength: 8 }), name: Type.String({ minLength: 1, maxLength: 100 }) }),
-      response: { 200: Type.Object({ success: Type.Boolean(), data: Type.Object({ user: Type.Object({ id: Type.String(), email: Type.String(), name: Type.String(), role: Type.String(), familyId: Type.String(), avatar: Type.Union([Type.String(), Type.Null()]), language: Type.String(), theme: Type.String() }), accessToken: Type.String(), refreshToken: Type.String() }) }) },
+      response: { 200: Type.Object({ success: Type.Boolean(), data: Type.Object({ user: Type.Object({ id: Type.String(), email: Type.String(), name: Type.String(), role: Type.String(), familyId: Type.String(), avatar: Type.Union([Type.String(), Type.Null()]), language: Type.String(), theme: Type.String() }) }) }) },
     },
   }, async (request, reply) => {
     const { token, password, name } = request.body;
 
-    const invitation = await prisma.invitation.findUnique({
-      where: { token },
-      include: { family: true },
-    });
+    const invitation = await prisma.invitation.findUnique({ where: { token } });
 
     if (!invitation) throw fastify.httpErrors.notFound('Invalid invitation');
     if (invitation.acceptedAt) throw fastify.httpErrors.conflict('Invitation already accepted');
     if (invitation.expiresAt < new Date()) throw fastify.httpErrors.gone('Invitation expired');
 
-    // Check if user already exists
-    let user = await prisma.user.findUnique({ where: { email: invitation.email } });
+    // Una invitacion no puede mover una cuenta existente a otra familia: el
+    // token no prueba que quien lo usa sea el duenio del email. Esa persona
+    // tiene que iniciar sesion; aceptar desde adentro todavia no existe.
+    const existing = await prisma.user.findUnique({ where: { email: invitation.email }, select: { id: true } });
+    if (existing) {
+      throw fastify.httpErrors.conflict('Account already exists. Log in to accept this invitation.');
+    }
 
-    if (user) {
-      // Add to family if not already
-      if (user.familyId !== invitation.familyId) {
-        user = await prisma.user.update({
-          where: { id: user.id },
-          data: { familyId: invitation.familyId, role: invitation.role },
-        });
+    const passwordHash = await fastify.hashPassword(password);
+
+    // Reclamar la invitacion y crear el usuario en la misma transaccion: si
+    // dos requests llegan con el mismo token, solo uno pasa el updateMany.
+    const user = await prisma.$transaction(async (tx) => {
+      const claimed = await tx.invitation.updateMany({
+        where: { id: invitation.id, acceptedAt: null },
+        data: { acceptedAt: new Date() },
+      });
+      if (claimed.count === 0) {
+        throw fastify.httpErrors.conflict('Invitation already accepted');
       }
-    } else {
-      // Create new user
-      const passwordHash = await fastify.hashPassword(password);
-      user = await prisma.user.create({
+      return tx.user.create({
         data: {
           email: invitation.email,
           passwordHash,
@@ -118,18 +122,12 @@ export async function invitationRoutes(fastify: FastifyInstance) {
           role: invitation.role,
           familyId: invitation.familyId,
         },
+        select: { id: true, email: true, name: true, role: true, familyId: true, avatar: true, language: true, theme: true },
       });
-    }
+    });
 
-    await prisma.invitation.update({ where: { id: invitation.id }, data: { acceptedAt: new Date() } });
-
-    const accessToken = fastify.generateAccessToken(user);
-    const refreshToken = fastify.generateRefreshToken(user);
-
-    reply.setCookie('accessToken', accessToken.replace('Bearer ', ''), { httpOnly: true, secure: env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 15 * 60, path: '/' });
-    reply.setCookie('refreshToken', refreshToken.replace('Bearer ', ''), { httpOnly: true, secure: env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 7 * 24 * 60 * 60, path: '/' });
-
-    return { success: true, data: { user: { ...user, passwordHash: undefined }, accessToken, refreshToken } };
+    await issueSession(fastify, reply, user);
+    return { success: true, data: { user } };
   });
 
   // Cancel invitation (admin only)
@@ -140,4 +138,4 @@ export async function invitationRoutes(fastify: FastifyInstance) {
     await prisma.invitation.delete({ where: { id: request.params.id, familyId: request.family!.id } });
     return { success: true, data: { message: 'Invitation cancelled' } };
   });
-}
+};

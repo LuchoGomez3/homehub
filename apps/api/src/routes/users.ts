@@ -1,6 +1,7 @@
-import { FastifyInstance } from 'fastify';
+import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { Type } from '@sinclair/typebox';
 import { prisma } from '../server.js';
+import { DateTime } from '../lib/schemas.js';
 import { updateUserSchema } from '@homehub/shared';
 
 const updateUserBody = Type.Object({
@@ -21,12 +22,12 @@ const userResponse = Type.Object({
     avatar: Type.Union([Type.String(), Type.Null()]),
     language: Type.String(),
     theme: Type.String(),
-    createdAt: Type.String(),
-    updatedAt: Type.String(),
+    createdAt: DateTime(),
+    updatedAt: DateTime(),
   }),
 });
 
-export async function userRoutes(fastify: FastifyInstance) {
+export const userRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   // Get current user profile
   fastify.get('/me', {
     schema: { response: { 200: userResponse } },
@@ -92,8 +93,8 @@ export async function userRoutes(fastify: FastifyInstance) {
               avatar: Type.Union([Type.String(), Type.Null()]),
               language: Type.String(),
               theme: Type.String(),
-              createdAt: Type.String(),
-              updatedAt: Type.String(),
+              createdAt: DateTime(),
+              updatedAt: DateTime(),
             })),
             meta: Type.Object({
               page: Type.Integer(),
@@ -179,4 +180,4 @@ export async function userRoutes(fastify: FastifyInstance) {
     await prisma.user.delete({ where: { id, familyId: request.family!.id } });
     return { success: true, data: { message: 'User removed from family' } };
   });
-}
+};

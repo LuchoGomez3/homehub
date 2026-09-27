@@ -1,6 +1,8 @@
-import { FastifyInstance } from 'fastify';
+import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { Type } from '@sinclair/typebox';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../server.js';
+import { DateTime } from '../lib/schemas.js';
 import { createExpenseSchema, updateExpenseSchema, expenseFiltersSchema, ExpenseCategory, Recurrence } from '@homehub/shared';
 
 const createExpenseBody = Type.Object({
@@ -39,13 +41,13 @@ const expenseResponse = Type.Object({
   amount: Type.Number(),
   category: Type.String(),
   description: Type.Union([Type.String(), Type.Null()]),
-  date: Type.String(),
+  date: DateTime(),
   isRecurring: Type.Boolean(),
   recurrence: Type.Union([Type.String(), Type.Null()]),
   userId: Type.String(),
   user: Type.Object({ id: Type.String(), name: Type.String(), avatar: Type.Union([Type.String(), Type.Null()]) }),
-  createdAt: Type.String(),
-  updatedAt: Type.String(),
+  createdAt: DateTime(),
+  updatedAt: DateTime(),
 });
 
 const paginatedExpenseResponse = Type.Object({
@@ -63,26 +65,28 @@ const paginatedExpenseResponse = Type.Object({
   }),
 });
 
-export async function expenseRoutes(fastify: FastifyInstance) {
-  const familyPrisma = fastify.familyPrisma(request => request.family!.id);
+export const expenseRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
 
   // List expenses
   fastify.get('/', {
     schema: { querystring: expenseQuery, response: { 200: paginatedExpenseResponse } },
   }, async (request) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const { page = 1, limit = 20, sortBy = 'date', sortOrder = 'desc', ...filters } = request.query;
-    const where: Record<string, unknown> = { familyId: request.family!.id };
+    const where: Prisma.ExpenseWhereInput = { familyId: request.family!.id };
 
     if (filters.category) where.category = filters.category;
     if (filters.startDate || filters.endDate) {
-      where.date = {};
-      if (filters.startDate) where.date.gte = new Date(filters.startDate);
-      if (filters.endDate) where.date.lte = new Date(filters.endDate);
+      const dateFilter: Prisma.DateTimeFilter = {};
+      if (filters.startDate) dateFilter.gte = new Date(filters.startDate);
+      if (filters.endDate) dateFilter.lte = new Date(filters.endDate);
+      where.date = dateFilter;
     }
     if (filters.minAmount !== undefined || filters.maxAmount !== undefined) {
-      where.amount = {};
-      if (filters.minAmount !== undefined) where.amount.gte = filters.minAmount;
-      if (filters.maxAmount !== undefined) where.amount.lte = filters.maxAmount;
+      const amountFilter: Prisma.DecimalFilter = {};
+      if (filters.minAmount !== undefined) amountFilter.gte = filters.minAmount;
+      if (filters.maxAmount !== undefined) amountFilter.lte = filters.maxAmount;
+      where.amount = amountFilter;
     }
     if (filters.isRecurring !== undefined) where.isRecurring = filters.isRecurring;
 
@@ -110,6 +114,7 @@ export async function expenseRoutes(fastify: FastifyInstance) {
   fastify.get('/:id', {
     schema: { params: Type.Object({ id: Type.String() }), response: { 200: Type.Object({ success: Type.Boolean(), data: expenseResponse }) } },
   }, async (request, reply) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const expense = await familyPrisma.expense.findUnique({
       where: { id: request.params.id },
       include: { user: { select: { id: true, name: true, avatar: true } } },
@@ -122,8 +127,9 @@ export async function expenseRoutes(fastify: FastifyInstance) {
   fastify.post('/', {
     schema: { body: createExpenseBody, response: { 201: Type.Object({ success: Type.Boolean(), data: expenseResponse }) } },
   }, async (request, reply) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const expense = await familyPrisma.expense.create({
-      data: { ...request.body, amount: request.body.amount, userId: request.user!.id },
+      data: { ...request.body, amount: request.body.amount, userId: request.user!.id, familyId: request.family!.id },
       include: { user: { select: { id: true, name: true, avatar: true } } },
     });
 
@@ -137,6 +143,7 @@ export async function expenseRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id', {
     schema: { params: Type.Object({ id: Type.String() }), body: updateExpenseBody, response: { 200: Type.Object({ success: Type.Boolean(), data: expenseResponse }) } },
   }, async (request, reply) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const existing = await familyPrisma.expense.findUnique({ where: { id: request.params.id } });
     if (!existing) throw fastify.httpErrors.notFound('Expense not found');
 
@@ -154,6 +161,7 @@ export async function expenseRoutes(fastify: FastifyInstance) {
   fastify.delete('/:id', {
     schema: { params: Type.Object({ id: Type.String() }), response: { 200: Type.Object({ success: Type.Boolean(), data: Type.Object({ message: Type.String() }) }) } },
   }, async (request, reply) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const existing = await familyPrisma.expense.findUnique({ where: { id: request.params.id } });
     if (!existing) throw fastify.httpErrors.notFound('Expense not found');
 
@@ -180,12 +188,14 @@ export async function expenseRoutes(fastify: FastifyInstance) {
       },
     },
   }, async (request) => {
+    const familyPrisma = fastify.familyPrisma(request.family!.id);
     const { startDate, endDate } = request.query;
-    const where: Record<string, unknown> = { familyId: request.family!.id };
+    const where: Prisma.ExpenseWhereInput = { familyId: request.family!.id };
     if (startDate || endDate) {
-      where.date = {};
-      if (startDate) where.date.gte = new Date(startDate);
-      if (endDate) where.date.lte = new Date(endDate);
+      const dateFilter: Prisma.DateTimeFilter = {};
+      if (startDate) dateFilter.gte = new Date(startDate);
+      if (endDate) dateFilter.lte = new Date(endDate);
+      where.date = dateFilter;
     }
 
     const [expenses, recurring] = await Promise.all([
@@ -214,4 +224,4 @@ export async function expenseRoutes(fastify: FastifyInstance) {
       },
     };
   });
-}
+};
