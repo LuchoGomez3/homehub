@@ -91,10 +91,20 @@ El bloque cierra cuando **un token fabricado a mano devuelve 401** — la prueba
 
 - [x] **F2-3 — `import { z }` en `packages/shared`**
       Una línea. Elimina 113 de los 281 errores. → `packages/shared/src/index.ts`
-- [ ] **F2-4 — Type provider de TypeBox en cada router**
+- [x] **F2-4 — Type provider de TypeBox en cada router**
       Tipar los plugins de rutas con `FastifyPluginAsyncTypebox` para que los esquemas
       lleguen a `request.body` y `request.params`. Un cambio de firma por archivo.
       → `apps/api/src/routes/*.ts`
+      *Verificado:* 119 → 28 errores. Con el type provider activo, TypeBox empezó a
+      chequear también los schemas de respuesta, y eso trajo dos arreglos más:
+      - Las fechas de las respuestas estaban declaradas como `Type.String()` y Prisma
+        devuelve `Date`. Se agregó el helper `DateTime()` en `lib/schemas.ts`, que acepta
+        los dos. En runtime no cambió nada: `/api/users/me` y `/api/family` siguen
+        devolviendo ISO.
+      - Los `where: Record<string, unknown>` pasan a `Prisma.<Modelo>WhereInput`, con
+        filtros tipados para las fechas y los montos.
+      Los 28 errores que quedan no son de este paso: 22 son de F2-7, 4 de `seed.ts` (F2-5)
+      y 2 de F5-5.
 - [ ] **F2-5 — Imports y `any` sueltos**
       `import { crypto } from 'crypto'` no es un export válido; dos parámetros sin tipo
       en `seed.ts`. → `routes/invitations.ts`, `prisma/seed.ts`
@@ -177,6 +187,14 @@ errores. No corrieron todavía: los verifica la Fase 7.*
 - [x] **F5-4 — Reúso de un refresh revocado mata la cadena**
       Si llega un token ya rotado es señal de robo: revocar todas las sesiones descendientes
       de ese usuario.
+
+- [ ] **F5-5 — `invitations/accept` emite la sesión como `register`**
+      *Hueco encontrado en F2-4.* La ruta todavía llama a `generateAccessToken` y
+      `generateRefreshToken`, que F4-2 borró: hoy tira `TypeError` y responde 500. Además
+      devuelve los tokens en el body (va contra `decisions/0001`), no guarda el refresh en
+      la tabla y, si el email ya existe, cambia de familia a ese usuario sin pedirle la
+      contraseña. Antes de escribirlo hay que decidir qué pasa con un usuario existente.
+      → `routes/invitations.ts`, `routes/auth.ts` (`issueSession` pasa a `lib/tokens.ts`)
 
 ## Fase 6 — Cerrar el WebSocket
 

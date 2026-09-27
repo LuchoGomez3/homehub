@@ -1,6 +1,8 @@
-import { FastifyInstance } from 'fastify';
+import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { Type } from '@sinclair/typebox';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../server.js';
+import { DateTime } from '../lib/schemas.js';
 import { createEventSchema, updateEventSchema, eventFiltersSchema, Recurrence } from '@homehub/shared';
 
 const createEventBody = Type.Object({
@@ -37,14 +39,14 @@ const eventResponse = Type.Object({
   id: Type.String(),
   title: Type.String(),
   description: Type.Union([Type.String(), Type.Null()]),
-  startDate: Type.String(),
-  endDate: Type.String(),
+  startDate: DateTime(),
+  endDate: DateTime(),
   allDay: Type.Boolean(),
   recurrence: Type.Union([Type.String(), Type.Null()]),
   color: Type.Union([Type.String(), Type.Null()]),
   attendees: Type.Array(Type.Object({ id: Type.String(), name: Type.String(), avatar: Type.Union([Type.String(), Type.Null()]) })),
-  createdAt: Type.String(),
-  updatedAt: Type.String(),
+  createdAt: DateTime(),
+  updatedAt: DateTime(),
 });
 
 const paginatedEventResponse = Type.Object({
@@ -62,7 +64,7 @@ const paginatedEventResponse = Type.Object({
   }),
 });
 
-export async function eventRoutes(fastify: FastifyInstance) {
+export const eventRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   const familyPrisma = fastify.familyPrisma(request => request.family!.id);
 
   // List events
@@ -70,12 +72,13 @@ export async function eventRoutes(fastify: FastifyInstance) {
     schema: { querystring: eventQuery, response: { 200: paginatedEventResponse } },
   }, async (request) => {
     const { page = 1, limit = 50, ...filters } = request.query;
-    const where: Record<string, unknown> = { familyId: request.family!.id };
+    const where: Prisma.EventWhereInput = { familyId: request.family!.id };
 
     if (filters.startDate || filters.endDate) {
-      where.startDate = {};
-      if (filters.startDate) where.startDate.gte = new Date(filters.startDate);
-      if (filters.endDate) where.startDate.lte = new Date(filters.endDate);
+      const startDateFilter: Prisma.DateTimeFilter = {};
+      if (filters.startDate) startDateFilter.gte = new Date(filters.startDate);
+      if (filters.endDate) startDateFilter.lte = new Date(filters.endDate);
+      where.startDate = startDateFilter;
     }
     if (filters.attendeeId) {
       where.attendees = { some: { id: filters.attendeeId } };
@@ -203,4 +206,4 @@ export async function eventRoutes(fastify: FastifyInstance) {
     });
     return { success: true, data: events };
   });
-}
+};

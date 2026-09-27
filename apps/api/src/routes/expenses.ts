@@ -1,6 +1,8 @@
-import { FastifyInstance } from 'fastify';
+import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { Type } from '@sinclair/typebox';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../server.js';
+import { DateTime } from '../lib/schemas.js';
 import { createExpenseSchema, updateExpenseSchema, expenseFiltersSchema, ExpenseCategory, Recurrence } from '@homehub/shared';
 
 const createExpenseBody = Type.Object({
@@ -39,13 +41,13 @@ const expenseResponse = Type.Object({
   amount: Type.Number(),
   category: Type.String(),
   description: Type.Union([Type.String(), Type.Null()]),
-  date: Type.String(),
+  date: DateTime(),
   isRecurring: Type.Boolean(),
   recurrence: Type.Union([Type.String(), Type.Null()]),
   userId: Type.String(),
   user: Type.Object({ id: Type.String(), name: Type.String(), avatar: Type.Union([Type.String(), Type.Null()]) }),
-  createdAt: Type.String(),
-  updatedAt: Type.String(),
+  createdAt: DateTime(),
+  updatedAt: DateTime(),
 });
 
 const paginatedExpenseResponse = Type.Object({
@@ -63,7 +65,7 @@ const paginatedExpenseResponse = Type.Object({
   }),
 });
 
-export async function expenseRoutes(fastify: FastifyInstance) {
+export const expenseRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   const familyPrisma = fastify.familyPrisma(request => request.family!.id);
 
   // List expenses
@@ -71,18 +73,20 @@ export async function expenseRoutes(fastify: FastifyInstance) {
     schema: { querystring: expenseQuery, response: { 200: paginatedExpenseResponse } },
   }, async (request) => {
     const { page = 1, limit = 20, sortBy = 'date', sortOrder = 'desc', ...filters } = request.query;
-    const where: Record<string, unknown> = { familyId: request.family!.id };
+    const where: Prisma.ExpenseWhereInput = { familyId: request.family!.id };
 
     if (filters.category) where.category = filters.category;
     if (filters.startDate || filters.endDate) {
-      where.date = {};
-      if (filters.startDate) where.date.gte = new Date(filters.startDate);
-      if (filters.endDate) where.date.lte = new Date(filters.endDate);
+      const dateFilter: Prisma.DateTimeFilter = {};
+      if (filters.startDate) dateFilter.gte = new Date(filters.startDate);
+      if (filters.endDate) dateFilter.lte = new Date(filters.endDate);
+      where.date = dateFilter;
     }
     if (filters.minAmount !== undefined || filters.maxAmount !== undefined) {
-      where.amount = {};
-      if (filters.minAmount !== undefined) where.amount.gte = filters.minAmount;
-      if (filters.maxAmount !== undefined) where.amount.lte = filters.maxAmount;
+      const amountFilter: Prisma.DecimalFilter = {};
+      if (filters.minAmount !== undefined) amountFilter.gte = filters.minAmount;
+      if (filters.maxAmount !== undefined) amountFilter.lte = filters.maxAmount;
+      where.amount = amountFilter;
     }
     if (filters.isRecurring !== undefined) where.isRecurring = filters.isRecurring;
 
@@ -181,11 +185,12 @@ export async function expenseRoutes(fastify: FastifyInstance) {
     },
   }, async (request) => {
     const { startDate, endDate } = request.query;
-    const where: Record<string, unknown> = { familyId: request.family!.id };
+    const where: Prisma.ExpenseWhereInput = { familyId: request.family!.id };
     if (startDate || endDate) {
-      where.date = {};
-      if (startDate) where.date.gte = new Date(startDate);
-      if (endDate) where.date.lte = new Date(endDate);
+      const dateFilter: Prisma.DateTimeFilter = {};
+      if (startDate) dateFilter.gte = new Date(startDate);
+      if (endDate) dateFilter.lte = new Date(endDate);
+      where.date = dateFilter;
     }
 
     const [expenses, recurring] = await Promise.all([
@@ -214,4 +219,4 @@ export async function expenseRoutes(fastify: FastifyInstance) {
       },
     };
   });
-}
+};

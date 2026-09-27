@@ -1,6 +1,7 @@
-import { FastifyInstance } from 'fastify';
+import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { Type } from '@sinclair/typebox';
 import { prisma } from '../server.js';
+import { DateTime } from '../lib/schemas.js';
 import { randomBytes } from 'node:crypto';
 import { inviteUserSchema, acceptInvitationSchema, UserRole } from '@homehub/shared';
 import { env } from '../config/env.js';
@@ -17,12 +18,12 @@ const invitationResponse = Type.Object({
   familyId: Type.String(),
   invitedById: Type.String(),
   token: Type.String(),
-  expiresAt: Type.String(),
-  acceptedAt: Type.Union([Type.String(), Type.Null()]),
-  createdAt: Type.String(),
+  expiresAt: DateTime(),
+  acceptedAt: Type.Union([DateTime(), Type.Null()]),
+  createdAt: DateTime(),
 });
 
-export async function invitationRoutes(fastify: FastifyInstance) {
+export const invitationRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   // Invite user (admin only)
   fastify.post('/', {
     schema: { body: inviteBody, response: { 201: Type.Object({ success: Type.Boolean(), data: invitationResponse }) } },
@@ -140,4 +141,4 @@ export async function invitationRoutes(fastify: FastifyInstance) {
     await prisma.invitation.delete({ where: { id: request.params.id, familyId: request.family!.id } });
     return { success: true, data: { message: 'Invitation cancelled' } };
   });
-}
+};

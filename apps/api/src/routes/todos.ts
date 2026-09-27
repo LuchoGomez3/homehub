@@ -1,6 +1,8 @@
-import { FastifyInstance } from 'fastify';
+import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { Type } from '@sinclair/typebox';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../server.js';
+import { DateTime } from '../lib/schemas.js';
 import { createTodoSchema, updateTodoSchema, todoFiltersSchema, TodoStatus, Priority } from '@homehub/shared';
 
 const createTodoBody = Type.Object({
@@ -39,11 +41,11 @@ const todoResponse = Type.Object({
   description: Type.Union([Type.String(), Type.Null()]),
   status: Type.String(),
   priority: Type.String(),
-  dueDate: Type.Union([Type.String(), Type.Null()]),
+  dueDate: Type.Union([DateTime(), Type.Null()]),
   assigneeId: Type.Union([Type.String(), Type.Null()]),
   assignee: Type.Union([Type.Object({ id: Type.String(), name: Type.String(), avatar: Type.Union([Type.String(), Type.Null()]) }), Type.Null()]),
-  createdAt: Type.String(),
-  updatedAt: Type.String(),
+  createdAt: DateTime(),
+  updatedAt: DateTime(),
 });
 
 const paginatedTodoResponse = Type.Object({
@@ -61,7 +63,7 @@ const paginatedTodoResponse = Type.Object({
   }),
 });
 
-export async function todoRoutes(fastify: FastifyInstance) {
+export const todoRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   const familyPrisma = fastify.familyPrisma(request => request.family!.id);
 
   // List todos
@@ -69,15 +71,16 @@ export async function todoRoutes(fastify: FastifyInstance) {
     schema: { querystring: todoQuery, response: { 200: paginatedTodoResponse } },
   }, async (request) => {
     const { page = 1, limit = 20, sortBy = 'dueDate', sortOrder = 'asc', ...filters } = request.query;
-    const where: Record<string, unknown> = { familyId: request.family!.id };
+    const where: Prisma.TodoWhereInput = { familyId: request.family!.id };
 
     if (filters.status) where.status = filters.status;
     if (filters.priority) where.priority = filters.priority;
     if (filters.assigneeId) where.assigneeId = filters.assigneeId;
     if (filters.dueBefore || filters.dueAfter) {
-      where.dueDate = {};
-      if (filters.dueBefore) where.dueDate.lte = new Date(filters.dueBefore);
-      if (filters.dueAfter) where.dueDate.gte = new Date(filters.dueAfter);
+      const dueDateFilter: Prisma.DateTimeFilter = {};
+      if (filters.dueBefore) dueDateFilter.lte = new Date(filters.dueBefore);
+      if (filters.dueAfter) dueDateFilter.gte = new Date(filters.dueAfter);
+      where.dueDate = dueDateFilter;
     }
 
     const [todos, total] = await Promise.all([
@@ -172,4 +175,4 @@ export async function todoRoutes(fastify: FastifyInstance) {
       },
     };
   });
-}
+};

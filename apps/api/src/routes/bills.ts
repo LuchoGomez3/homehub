@@ -1,6 +1,8 @@
-import { FastifyInstance } from 'fastify';
+import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { Type } from '@sinclair/typebox';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../server.js';
+import { DateTime } from '../lib/schemas.js';
 import { createBillSchema, updateBillSchema, billFiltersSchema, BillCategory, BillStatus, Recurrence } from '@homehub/shared';
 
 const createBillBody = Type.Object({
@@ -38,13 +40,13 @@ const billResponse = Type.Object({
   id: Type.String(),
   name: Type.String(),
   amount: Type.Number(),
-  dueDate: Type.String(),
+  dueDate: DateTime(),
   category: Type.String(),
   status: Type.String(),
   recurrence: Type.String(),
   fileUrl: Type.Union([Type.String(), Type.Null()]),
-  createdAt: Type.String(),
-  updatedAt: Type.String(),
+  createdAt: DateTime(),
+  updatedAt: DateTime(),
 });
 
 const paginatedBillResponse = Type.Object({
@@ -62,7 +64,7 @@ const paginatedBillResponse = Type.Object({
   }),
 });
 
-export async function billRoutes(fastify: FastifyInstance) {
+export const billRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   const familyPrisma = fastify.familyPrisma(request => request.family!.id);
 
   // List bills
@@ -70,14 +72,15 @@ export async function billRoutes(fastify: FastifyInstance) {
     schema: { querystring: billQuery, response: { 200: paginatedBillResponse } },
   }, async (request) => {
     const { page = 1, limit = 20, sortBy = 'dueDate', sortOrder = 'asc', ...filters } = request.query;
-    const where: Record<string, unknown> = { familyId: request.family!.id };
+    const where: Prisma.BillWhereInput = { familyId: request.family!.id };
 
     if (filters.category) where.category = filters.category;
     if (filters.status) where.status = filters.status;
     if (filters.startDate || filters.endDate) {
-      where.dueDate = {};
-      if (filters.startDate) where.dueDate.gte = new Date(filters.startDate);
-      if (filters.endDate) where.dueDate.lte = new Date(filters.endDate);
+      const dueDateFilter: Prisma.DateTimeFilter = {};
+      if (filters.startDate) dueDateFilter.gte = new Date(filters.startDate);
+      if (filters.endDate) dueDateFilter.lte = new Date(filters.endDate);
+      where.dueDate = dueDateFilter;
     }
 
     const [bills, total] = await Promise.all([
@@ -183,4 +186,4 @@ export async function billRoutes(fastify: FastifyInstance) {
 
     return { success: true, data: bills.map(b => ({ ...b, amount: Number(b.amount) })) };
   });
-}
+};
