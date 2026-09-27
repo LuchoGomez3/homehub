@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { Type } from '@sinclair/typebox';
 import { prisma } from '../server.js';
-import { crypto } from 'crypto';
+import { randomBytes } from 'node:crypto';
 import { inviteUserSchema, acceptInvitationSchema, UserRole } from '@homehub/shared';
 import { env } from '../config/env.js';
 
@@ -46,7 +46,7 @@ export async function invitationRoutes(fastify: FastifyInstance) {
       throw fastify.httpErrors.conflict('Invitation already pending');
     }
 
-    const token = crypto.randomBytes(32).toString('hex');
+    const token = randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
     const invitation = await prisma.invitation.create({

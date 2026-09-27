@@ -43,8 +43,8 @@ async function main() {
 
   console.log('✅ Family created:', family.name);
 
-  const admin = family.members.find(m => m.role === 'ADMIN')!;
-  const member = family.members.find(m => m.role === 'MEMBER')!;
+  const admin = family.members.find((m) => m.role === 'ADMIN')!;
+  const member = family.members.find((m) => m.role === 'MEMBER')!;
 
   // Create sample expenses
   const expenseCategories = ['FOOD', 'TRANSPORT', 'HOUSING', 'UTILITIES', 'HEALTH', 'EDUCATION', 'ENTERTAINMENT', 'CLOTHING', 'OTHER'];
