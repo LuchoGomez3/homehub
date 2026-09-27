@@ -8,13 +8,13 @@ import jwt from '@fastify/jwt';
 import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
 import multipart from '@fastify/multipart';
+import sensible from '@fastify/sensible';
 import swagger from '@fastify/swagger';
 import swaggerUI from '@fastify/swagger-ui';
 import { PrismaClient } from '@prisma/client';
-import { Socket } from 'socket.io';
-import { createAdapter } from '@socket.io/redis-adapter';
 import { createClient } from 'redis';
 import { env } from './config/env.js';
+import { ACCESS_TOKEN_TTL_SECONDS, REFRESH_TOKEN_TTL_SECONDS } from './lib/tokens.js';
 import { authPlugin } from './plugins/auth.js';
 import { familyPlugin } from './plugins/family.js';
 import { registerRoutes } from './routes/index.js';
@@ -65,14 +65,21 @@ async function buildServer(): Promise<FastifyInstance> {
     keyGenerator: (req) => req.ip,
   });
 
+  // httpErrors, assert, etc. Las rutas y el plugin de auth dependen de esto.
+  await server.register(sensible);
+
+  // Dos instancias de JWT con secretos distintos: un access token robado no
+  // sirve para fabricar refresh tokens, y viceversa. En runtime quedan como
+  // fastify.jwt.access y fastify.jwt.refresh (ver lib/tokens.ts).
   await server.register(jwt, {
+    namespace: 'access',
     secret: env.JWT_SECRET,
-    sign: { expiresIn: '15m' },
-    verify: { maxAge: '15m' },
-    cookie: {
-      cookieName: 'accessToken',
-      signed: false,
-    },
+    sign: { expiresIn: ACCESS_TOKEN_TTL_SECONDS },
+  });
+  await server.register(jwt, {
+    namespace: 'refresh',
+    secret: env.JWT_REFRESH_SECRET,
+    sign: { expiresIn: REFRESH_TOKEN_TTL_SECONDS },
   });
 
   await server.register(multipart, {

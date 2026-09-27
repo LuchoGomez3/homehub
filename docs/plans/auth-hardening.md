@@ -89,7 +89,7 @@ El bloque cierra cuando **un token fabricado a mano devuelve 401** — la prueba
 
 > Lo que la línea de base mostró y no es autenticación, pero bloquea el verde de F7-1.
 
-- [ ] **F2-3 — `import { z }` en `packages/shared`**
+- [x] **F2-3 — `import { z }` en `packages/shared`**
       Una línea. Elimina 113 de los 281 errores. → `packages/shared/src/index.ts`
 - [ ] **F2-4 — Type provider de TypeBox en cada router**
       Tipar los plugins de rutas con `FastifyPluginAsyncTypebox` para que los esquemas
@@ -98,7 +98,9 @@ El bloque cierra cuando **un token fabricado a mano devuelve 401** — la prueba
 - [ ] **F2-5 — Imports y `any` sueltos**
       `import { crypto } from 'crypto'` no es un export válido; dos parámetros sin tipo
       en `seed.ts`. → `routes/invitations.ts`, `prisma/seed.ts`
-- [ ] **F2-6 — Sacar el registro de `shoppingRoutes`**
+      *Parcial:* `invitations.ts` usa `randomBytes` de `node:crypto`. `seed.ts` todavía
+      tiene 4 errores.
+- [x] **F2-6 — Sacar el registro de `shoppingRoutes`**
       El módulo no existe y el servidor no puede levantar con el import roto. Escribirlo
       es trabajo de feature: se quita el registro con un `TODO` y queda para el bloque de
       supermercado. *(Hueco del plan original: F7-2 no podía pasar sin esto.)*
@@ -129,37 +131,48 @@ El bloque cierra cuando **un token fabricado a mano devuelve 401** — la prueba
 > El núcleo del problema. `@fastify/jwt` ya está registrado con el secreto correcto y nunca
 > se usó.
 
-- [ ] **F4-1 — Registrar `@fastify/sensible`**
+- [x] **F4-1 — Registrar `@fastify/sensible`**
       Habilita los 30 usos de `fastify.httpErrors` que hoy tiran `TypeError` y devuelven 500
       donde debería haber un 401. → `apps/api/src/server.ts`
-- [ ] **F4-2 — Borrar el generador de tokens casero**
+- [x] **F4-2 — Borrar el generador de tokens casero**
       Eliminar `generateAccessToken`, `generateRefreshToken` y `parseToken`. Son
       `JSON.stringify` + base64: es la vulnerabilidad entera en tres funciones.
       → `apps/api/src/plugins/auth.ts`
-- [ ] **F4-3 — Firmar y verificar con `@fastify/jwt`**
+- [x] **F4-3 — Firmar y verificar con `@fastify/jwt`**
       Access de 15 minutos con `JWT_SECRET` y refresh de 7 días con `JWT_REFRESH_SECRET`, en
       namespaces separados. Las dos variables ya existen y el validador de entorno ya las
       exige. → `apps/api/src/server.ts`, `plugins/auth.ts`
 - [ ] **F4-4 — El `preHandler` verifica firma antes de tocar la base**
       Hoy decodifica y consulta Postgres con lo que venga. Debe rechazar en la verificación,
       antes de cualquier query. → `apps/api/src/plugins/auth.ts`
+      *Escrito, pero no aplica:* `authPlugin` no está envuelto en `fastify-plugin`, así que
+      Fastify encapsula su hook y sus decoradores y no llegan a las rutas de
+      `registerRoutes`. Además, `decorateRequest('user')` choca con el que ya registra
+      `@fastify/jwt`, y el servidor no arrancaría. Lo mismo pasa con `familyPlugin`. Ver F4-5.
+- [ ] **F4-5 — Sacar `authPlugin` y `familyPlugin` del encapsulamiento**
+      Envolverlos con `fastify-plugin` (declararlo como dependencia) y eliminar el
+      `decorateRequest('user')` duplicado. *(Hueco del plan original: viene del código
+      heredado y ningún typecheck lo detecta.)* → `plugins/auth.ts`, `plugins/family.ts`
 
 ## Fase 5 — Rutas sobre cookies httpOnly
 
 > Una sola fuente de verdad: el token nunca vuelve en el cuerpo de la respuesta ni toca
 > JavaScript.
 
-- [ ] **F5-1 — `register` y `login` emiten solo cookies**
+*F4-1 a F4-3 y F5 están escritos y `routes/auth.ts` + `plugins/auth.ts` compilan sin
+errores. No corrieron todavía: los verifica la Fase 7.*
+
+- [x] **F5-1 — `register` y `login` emiten solo cookies**
       Sacar `accessToken` y `refreshToken` del body de respuesta y del esquema de OpenAPI. Si
       el token no viaja en el JSON, el frontend no puede guardarlo en `localStorage` aunque
       quiera. → `apps/api/src/routes/auth.ts`
-- [ ] **F5-2 — `refresh` valida contra la tabla y rota**
+- [x] **F5-2 — `refresh` valida contra la tabla y rota**
       Verificar firma, buscar el hash en la base, comprobar que no esté revocado ni vencido,
       emitir el par nuevo y revocar el anterior encadenándolo.
-- [ ] **F5-3 — `logout` revoca en la base**
+- [x] **F5-3 — `logout` revoca en la base**
       Hoy solo borra la cookie del navegador. Tiene que marcar el refresh token como revocado
       para que cerrar sesión signifique algo del lado del servidor.
-- [ ] **F5-4 — Reúso de un refresh revocado mata la cadena**
+- [x] **F5-4 — Reúso de un refresh revocado mata la cadena**
       Si llega un token ya rotado es señal de robo: revocar todas las sesiones descendientes
       de ese usuario.
 
